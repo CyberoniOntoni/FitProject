@@ -13,6 +13,7 @@ public sealed partial class MainWindow : Window
 
     public MainWindow()
     {
+        App.MainWindow = this;
         InitializeComponent();
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(null);
@@ -88,6 +89,8 @@ public sealed partial class MainWindow : Window
             "Profile" => new ProfilePage(),
             "Habits" => new HabitsPage(),
             "ProgressPhotos" => new ProgressPhotosPage(),
+            "AddProgressPhoto" => new AddProgressPhotoPage(),
+            "Settings" => new SettingsPage(),
             "Measurements" => new MeasurementsPage(),
             "PersonalRecords" => new PersonalRecordsPage(),
             _ => null

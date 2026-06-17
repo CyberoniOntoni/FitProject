@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace FitProjectWin.Models;
 
 public sealed class FPUser
@@ -9,6 +11,7 @@ public sealed class FPUser
     public string? ProfilePictureUrl { get; set; }
     public string? Timezone { get; set; }
     public bool CoachHasProTools { get; set; }
+    public FPUnitPreferences UnitPreferences { get; set; } = new();
 
     public string DisplayName
     {
@@ -283,6 +286,91 @@ public sealed class FPProgressSession
     public DateTime DateCreated { get; set; }
     public List<FPProgressPicture> Pictures { get; set; } = [];
     public string? Notes { get; set; }
+}
+
+public sealed class FPUnitPreferences
+{
+    public string Weight { get; set; } = "KILOGRAM";
+    public string Mass { get; set; } = "KILOGRAM";
+    public string Circumference { get; set; } = "CENTIMETER";
+    public string Distance { get; set; } = "MILE";
+    public string Time { get; set; } = "SECOND";
+
+    public static FPUnitPreferences FromFirestore(JsonElement? fields)
+    {
+        if (fields is null || !fields.Value.TryGetProperty("mapValue", out var map) ||
+            !map.TryGetProperty("fields", out var ff))
+            return new();
+
+        string Read(string key) =>
+            ff.TryGetProperty(key, out var v) && v.TryGetProperty("stringValue", out var s)
+                ? s.GetString() ?? ""
+                : "";
+
+        return new FPUnitPreferences
+        {
+            Weight = NullIfEmpty(Read("weight")) ?? "KILOGRAM",
+            Mass = NullIfEmpty(Read("mass")) ?? "KILOGRAM",
+            Circumference = NullIfEmpty(Read("circumference")) ?? "CENTIMETER",
+            Distance = NullIfEmpty(Read("distance")) ?? "MILE",
+            Time = NullIfEmpty(Read("time")) ?? "SECOND"
+        };
+    }
+
+    private static string? NullIfEmpty(string value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value;
+}
+
+public sealed class FPProgressPhotoDraft
+{
+    public string SessionId { get; set; } = Guid.NewGuid().ToString();
+    public DateTime DateCreated { get; set; } = DateTime.Today;
+    public string Notes { get; set; } = "";
+    public Dictionary<string, string> PoseImageUrls { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, string> PoseLocalPaths { get; } = new(StringComparer.OrdinalIgnoreCase);
+}
+
+public static class UnitConversionHelper
+{
+    public static string MassAbbreviation(string unit) => unit switch
+    {
+        "POUND" => "lb",
+        _ => "kg"
+    };
+
+    public static string CircumferenceAbbreviation(string unit) => unit switch
+    {
+        "INCH" => "in",
+        _ => "cm"
+    };
+
+    public static double ConvertMassForDisplay(double kg, string unit) =>
+        unit == "POUND" ? Math.Round(kg * 2.20462, 2) : Math.Round(kg, 2);
+
+    public static double ConvertCircumferenceForDisplay(double cm, string unit) =>
+        unit == "INCH" ? Math.Round(cm / 2.54, 2) : Math.Round(cm, 2);
+
+    public static double MassToCanonical(double value, string unit) =>
+        unit == "POUND" ? value / 2.20462 : value;
+
+    public static double CircumferenceToCanonical(double value, string unit) =>
+        unit == "INCH" ? value * 2.54 : value;
+
+    public static string FormatMeasurementValue(FPMeasurement m, FPUnitPreferences prefs)
+    {
+        var type = MeasurementCatalog.FindById(m.TypeId) ?? MeasurementCatalog.FindByName(m.Name);
+        if (type?.Category == "Circumference")
+        {
+            var display = ConvertCircumferenceForDisplay(m.Value, prefs.Circumference);
+            return $"{display:0.##} {CircumferenceAbbreviation(prefs.Circumference)}";
+        }
+        if (type?.Category == "Body Composition" && type.UnitType == "MASS")
+        {
+            var display = ConvertMassForDisplay(m.Value, prefs.Mass);
+            return $"{display:0.##} {MassAbbreviation(prefs.Mass)}";
+        }
+        return $"{m.Value:0.##} {m.Unit}";
+    }
 }
 
 public sealed class FPMeasurement

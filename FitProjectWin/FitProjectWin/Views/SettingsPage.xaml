@@ -1,0 +1,50 @@
+<Page
+    x:Class="FitProjectWin.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{StaticResource BackgroundBrush}">
+
+    <Grid RowDefinitions="Auto,*">
+        <Grid Grid.Row="0" Padding="24,16,24,8" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Click="Back_Click" Background="Transparent" BorderThickness="0"
+                    HorizontalAlignment="Left" Padding="0">
+                <FontIcon Glyph="&#xE72B;" FontSize="16" Foreground="{StaticResource TextPrimaryBrush}" />
+            </Button>
+            <TextBlock Grid.Column="1" Text="Settings" Style="{StaticResource HeadlineStyle}"
+                       HorizontalAlignment="Center" />
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" Padding="24,8,24,24">
+            <StackPanel Spacing="20">
+                <TextBlock Text="Unit Preferences" Style="{StaticResource SectionTitleStyle}" />
+                <TextBlock Text="Synced with FitPros.io — changes apply across web and mobile."
+                           Style="{StaticResource CaptionStyle}" TextWrapping="Wrap" />
+
+                <Border Style="{StaticResource CardBorderStyle}">
+                    <StackPanel Spacing="16">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Body Weight / Mass" FontWeight="SemiBold" />
+                            <StackPanel x:Name="MassOptions" Orientation="Horizontal" Spacing="8" />
+                        </StackPanel>
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Circumference" FontWeight="SemiBold" />
+                            <StackPanel x:Name="CircumferenceOptions" Orientation="Horizontal" Spacing="8" />
+                        </StackPanel>
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Distance" FontWeight="SemiBold" />
+                            <StackPanel x:Name="DistanceOptions" Orientation="Horizontal" Spacing="8" />
+                        </StackPanel>
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Time" FontWeight="SemiBold" />
+                            <StackPanel x:Name="TimeOptions" Orientation="Horizontal" Spacing="8" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

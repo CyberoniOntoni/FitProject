@@ -15,6 +15,8 @@ public sealed class AppDataService
     public List<FPContent> Content { get; private set; } = [];
     public List<FPPersonalRecord> PersonalRecords { get; private set; } = [];
     public List<FPForm> Forms { get; private set; } = [];
+    public FPUnitPreferences UnitPreferences { get; private set; } = new();
+    public List<FPProgressPicture> AllProgressPictures { get; private set; } = [];
 
     public FPWorkout? NextWorkout { get; private set; }
     public FPProgram? NextProgram { get; private set; }
@@ -51,6 +53,7 @@ public sealed class AppDataService
             var logs = await fs.FetchWorkoutLogsAsync(userId);
             var habits = await fs.FetchHabitsAsync(userId);
             var progressPictures = await fs.FetchProgressPicturesAsync(userId);
+            var profile = await fs.FetchUserProfileAsync(userId);
             var measurements = await fs.FetchAllMeasurementsAsync(userId);
             var content = await fs.FetchContentAsync(userId);
             var records = await fs.FetchPersonalRecordsAsync(userId);
@@ -64,7 +67,11 @@ public sealed class AppDataService
             ProgramWeeks = weeks;
             WorkoutLogs = logs;
             Habits = habits;
+            AllProgressPictures = progressPictures;
             ProgressSessions = fs.GroupProgressSessions(progressPictures);
+            UnitPreferences = profile.UnitPreferences;
+            if (_auth.CurrentUser is not null)
+                _auth.CurrentUser.UnitPreferences = profile.UnitPreferences;
             Measurements = measurements;
             Content = content;
             PersonalRecords = records;
@@ -251,6 +258,60 @@ public sealed class AppDataService
         DataChanged?.Invoke();
     }
 
+    public async Task UpdateUnitPreferenceAsync(string key, string value)
+    {
+        if (_auth.CurrentUser is null || _auth.IdToken is null) return;
+        var fs = new FirestoreService(_auth.IdToken);
+        await fs.UpdateUnitPreferenceAsync(_auth.CurrentUser.Id, key, value);
+
+        switch (key)
+        {
+            case "weight": UnitPreferences.Weight = value; break;
+            case "mass": UnitPreferences.Mass = value; break;
+            case "circumference": UnitPreferences.Circumference = value; break;
+            case "distance": UnitPreferences.Distance = value; break;
+            case "time": UnitPreferences.Time = value; break;
+        }
+        _auth.CurrentUser.UnitPreferences = UnitPreferences;
+        DataChanged?.Invoke();
+    }
+
+    public async Task SaveProgressPhotoSessionAsync(FPProgressPhotoDraft draft)
+    {
+        if (_auth.CurrentUser is null || _auth.IdToken is null) return;
+
+        var storage = new FirebaseStorageService(_auth.IdToken);
+        var fs = new FirestoreService(_auth.IdToken);
+        var userId = _auth.CurrentUser.Id;
+        var poses = new List<(string PoseType, string ImageUrl, string? ExistingId)>();
+
+        foreach (var (poseType, localPath) in draft.PoseLocalPaths)
+        {
+            var imageUrl = await storage.UploadProgressPhotoAsync(
+                userId, draft.SessionId, poseType, localPath);
+            draft.PoseImageUrls[poseType] = imageUrl;
+            poses.Add((poseType, imageUrl, null));
+        }
+
+        await fs.SaveProgressSessionAsync(
+            userId, draft.SessionId, draft.DateCreated, draft.Notes, poses);
+
+        var pictures = poses.Select(p => new FPProgressPicture
+        {
+            Id = Guid.NewGuid().ToString(),
+            UserId = userId,
+            SessionId = draft.SessionId,
+            PoseType = p.PoseType,
+            ImageUrl = p.ImageUrl,
+            DateCreated = draft.DateCreated,
+            Notes = string.IsNullOrWhiteSpace(draft.Notes) ? null : draft.Notes
+        }).ToList();
+
+        AllProgressPictures.InsertRange(0, pictures);
+        ProgressSessions = new FirestoreService(_auth.IdToken).GroupProgressSessions(AllProgressPictures);
+        DataChanged?.Invoke();
+    }
+
     public async Task SaveMeasurementAsync(FPMeasurement measurement)
     {
         if (_auth.CurrentUser is null || _auth.IdToken is null) return;
@@ -287,6 +348,8 @@ public sealed class AppDataService
         WorkoutLogs = [];
         Habits = [];
         ProgressSessions = [];
+        AllProgressPictures = [];
+        UnitPreferences = new();
         Measurements = [];
         Content = [];
         PersonalRecords = [];

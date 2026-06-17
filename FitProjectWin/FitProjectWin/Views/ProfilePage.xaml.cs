@@ -9,6 +9,9 @@ public sealed partial class ProfilePage : Page
 
     public ProfilePage() => InitializeComponent();
 
+    private void OpenSettings_Click(object sender, RoutedEventArgs e) =>
+        App.NavigationService?.Navigate("Settings");
+
     private void OpenHabits_Click(object sender, RoutedEventArgs e) =>
         App.NavigationService?.Navigate("Habits");
 

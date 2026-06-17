@@ -22,7 +22,29 @@ public sealed partial class MeasurementsPage : Page
     private void TypeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (TypeCombo.SelectedIndex >= 0 && TypeCombo.SelectedIndex < MeasurementCatalog.Types.Length)
-            UnitLabel.Text = $"Unit: {MeasurementCatalog.Types[TypeCombo.SelectedIndex].DisplayUnit}";
+            UnitLabel.Text = $"Unit: {DisplayUnitFor(MeasurementCatalog.Types[TypeCombo.SelectedIndex])}";
+    }
+
+    private string DisplayUnitFor(MeasurementTypeDef type)
+    {
+        var prefs = ViewModel.Data.UnitPreferences;
+        return type.Category switch
+        {
+            "Circumference" => UnitConversionHelper.CircumferenceAbbreviation(prefs.Circumference),
+            "Body Composition" when type.UnitType == "MASS" => UnitConversionHelper.MassAbbreviation(prefs.Mass),
+            _ => type.DisplayUnit
+        };
+    }
+
+    private double DisplayValueFor(FPMeasurement? measurement, MeasurementTypeDef type)
+    {
+        if (measurement is null) return 0;
+        var prefs = ViewModel.Data.UnitPreferences;
+        if (type.Category == "Circumference")
+            return UnitConversionHelper.ConvertCircumferenceForDisplay(measurement.Value, prefs.Circumference);
+        if (type.Category == "Body Composition" && type.UnitType == "MASS")
+            return UnitConversionHelper.ConvertMassForDisplay(measurement.Value, prefs.Mass);
+        return measurement.Value;
     }
 
     private async void Save_Click(object sender, RoutedEventArgs e)
@@ -30,13 +52,21 @@ public sealed partial class MeasurementsPage : Page
         if (TypeCombo.SelectedIndex < 0 || ValueBox.Value <= 0) return;
 
         var type = MeasurementCatalog.Types[TypeCombo.SelectedIndex];
+        var prefs = ViewModel.Data.UnitPreferences;
+        var canonicalValue = type.Category switch
+        {
+            "Circumference" => UnitConversionHelper.CircumferenceToCanonical(ValueBox.Value, prefs.Circumference),
+            "Body Composition" when type.UnitType == "MASS" =>
+                UnitConversionHelper.MassToCanonical(ValueBox.Value, prefs.Mass),
+            _ => ValueBox.Value
+        };
         var measurement = new FPMeasurement
         {
             Id = Guid.NewGuid().ToString(),
             TypeId = type.Id,
             Name = type.Name,
-            Unit = type.DisplayUnit,
-            Value = ValueBox.Value,
+            Unit = DisplayUnitFor(type),
+            Value = canonicalValue,
             Date = DateTime.UtcNow,
             Notes = string.IsNullOrWhiteSpace(NotesBox.Text) ? null : NotesBox.Text.Trim(),
             SessionId = Guid.NewGuid().ToString()
@@ -109,7 +139,9 @@ public sealed partial class MeasurementsPage : Page
 
                 var latest = LatestForType(measurements, type);
                 var hasValue = latest is not null;
-                var cell = BuildOverviewCell(type.Name, type.DisplayUnit, latest, hasValue, () => SelectType(type.Name));
+                var displayUnit = DisplayUnitFor(type);
+                var displayValue = DisplayValueFor(latest, type);
+                var cell = BuildOverviewCell(type.Name, displayUnit, displayValue, latest, hasValue, () => SelectType(type.Name));
                 OverviewGrid.Children.Add(cell);
                 Grid.SetRow(cell, row);
                 Grid.SetColumn(cell, col);
@@ -130,7 +162,7 @@ public sealed partial class MeasurementsPage : Page
             .OrderByDescending(m => m.Date)
             .FirstOrDefault();
 
-    private static Button BuildOverviewCell(string name, string unit, FPMeasurement? latest, bool hasValue, Action onTap)
+    private static Button BuildOverviewCell(string name, string unit, double displayValue, FPMeasurement? latest, bool hasValue, Action onTap)
     {
         var valueBrush = hasValue
             ? (Brush)Application.Current.Resources["AccentBrush"]!
@@ -138,7 +170,7 @@ public sealed partial class MeasurementsPage : Page
 
         var valueText = new TextBlock
         {
-            Text = hasValue ? $"{latest!.Value:0.#}" : "—",
+            Text = hasValue ? $"{displayValue:0.#}" : "—",
             FontSize = 26,
             FontWeight = Microsoft.UI.Text.FontWeights.Bold,
             Foreground = valueBrush
@@ -238,7 +270,7 @@ public sealed partial class MeasurementsPage : Page
             grid.Children.Add(info);
             grid.Children.Add(new TextBlock
             {
-                Text = $"{m.Value:0.#} {m.Unit}",
+                Text = UnitConversionHelper.FormatMeasurementValue(m, ViewModel.Data.UnitPreferences),
                 FontSize = 22,
                 FontWeight = Microsoft.UI.Text.FontWeights.Bold,
                 Foreground = (Brush)Application.Current.Resources["AccentBrush"],

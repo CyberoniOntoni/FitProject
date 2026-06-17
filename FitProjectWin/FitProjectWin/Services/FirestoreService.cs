@@ -21,6 +21,8 @@ public sealed class FirestoreService
     {
         var doc = await GetDocumentAsync($"users/{userId}");
         var fields = doc.GetProperty("fields");
+        JsonElement? unitPrefs = fields.TryGetProperty("unitPreferences", out var up) ? up : null;
+
         return new FPUser
         {
             Id = userId,
@@ -29,8 +31,32 @@ public sealed class FirestoreService
             LastName = FirestoreParser.GetString(fields, "lastName") ?? "",
             ProfilePictureUrl = FirestoreParser.GetString(fields, "profilePictureUrl"),
             Timezone = FirestoreParser.GetString(fields, "timezone"),
-            CoachHasProTools = FirestoreParser.GetBool(fields, "coachHasProTools")
+            CoachHasProTools = FirestoreParser.GetBool(fields, "coachHasProTools"),
+            UnitPreferences = FPUnitPreferences.FromFirestore(unitPrefs)
         };
+    }
+
+    public async Task UpdateUnitPreferenceAsync(string userId, string key, string value)
+    {
+        var url = $"{FirebaseConfig.FirestoreBaseUrl}/users/{userId}?updateMask.fieldPaths=unitPreferences.{key}";
+        var body = new
+        {
+            fields = new Dictionary<string, object>
+            {
+                ["unitPreferences"] = new
+                {
+                    mapValue = new
+                    {
+                        fields = new Dictionary<string, object>
+                        {
+                            [key] = FirestoreParser.FirestoreValue(value)
+                        }
+                    }
+                }
+            }
+        };
+        var response = await _http.PatchAsJsonAsync(url, body);
+        response.EnsureSuccessStatusCode();
     }
 
     public async Task<List<FPProgram>> FetchCreatorProgramsAsync(string userId)
@@ -379,6 +405,41 @@ public sealed class FirestoreService
 
     public List<FPProgressSession> GroupProgressSessions(IEnumerable<FPProgressPicture> pictures) =>
         FirestoreParser.GroupProgressSessions(pictures);
+
+    public async Task SaveProgressSessionAsync(
+        string userId,
+        string sessionId,
+        DateTime dateCreated,
+        string? notes,
+        IEnumerable<(string PoseType, string ImageUrl, string? ExistingId)> poses)
+    {
+        var now = DateTime.UtcNow;
+        var poseList = poses.ToList();
+        foreach (var pose in poseList)
+        {
+            var docId = pose.ExistingId ?? Guid.NewGuid().ToString();
+            await PatchDocumentAsync($"progressPictures/{docId}", new Dictionary<string, object?>
+            {
+                ["userId"] = userId,
+                ["sessionId"] = sessionId,
+                ["poseType"] = pose.PoseType,
+                ["imageUrl"] = pose.ImageUrl,
+                ["dateCreated"] = dateCreated,
+                ["lastUpdated"] = now,
+                ["notes"] = notes ?? ""
+            });
+        }
+
+        var summary = string.IsNullOrWhiteSpace(notes) ? "Progress picture added" : notes;
+        await PatchDocumentAsync($"userHistory/{sessionId}", new Dictionary<string, object?>
+        {
+            ["userId"] = userId,
+            ["dateCreated"] = dateCreated,
+            ["type"] = "PROGRESS_PICTURE",
+            ["summary"] = summary,
+            ["imageUrl"] = poseList[0].ImageUrl
+        });
+    }
 
     public async Task<List<FPMeasurement>> FetchMeasurementLogsAsync(string userId)
     {
