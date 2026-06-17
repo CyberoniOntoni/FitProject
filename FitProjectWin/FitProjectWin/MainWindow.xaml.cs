@@ -1,13 +1,14 @@
-using FitProjectWin.Models;
 using FitProjectWin.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 
 namespace FitProjectWin;
 
 public sealed partial class MainWindow : Window
 {
     private readonly MainViewModel _vm = App.ViewModel;
+    private string _activeNav = "Train";
 
     public MainWindow()
     {
@@ -47,14 +48,17 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    private void NavButton_Click(object sender, RoutedEventArgs e)
     {
-        if (args.SelectedItem is NavigationViewItem item && item.Tag is string tag)
+        if (sender is Button btn && btn.Tag is string tag)
             NavigateTo(tag);
     }
 
     private void NavigateTo(string tag)
     {
+        _activeNav = tag;
+        UpdateNavHighlight();
+
         Page? page = tag switch
         {
             "Train" => new TrainPage(),
@@ -65,5 +69,31 @@ public sealed partial class MainWindow : Window
             _ => null
         };
         if (page is not null) ContentFrame.Content = page;
+    }
+
+    private void UpdateNavHighlight()
+    {
+        var accent = (Brush)Application.Current.Resources["AccentBrush"];
+        var muted = (Brush)Application.Current.Resources["TextTertiaryBrush"];
+
+        HighlightNavButton(NavTrain, _activeNav == "Train", accent, muted);
+        HighlightNavButton(NavPrograms, _activeNav == "Programs", accent, muted);
+        HighlightNavButton(NavLearn, _activeNav == "Learn", accent, muted);
+        HighlightNavButton(NavHistory, _activeNav == "History", accent, muted);
+        HighlightNavButton(NavProfile, _activeNav == "Profile", accent, muted);
+    }
+
+    private static void HighlightNavButton(Button button, bool active, Brush accent, Brush muted)
+    {
+        if (button.Content is StackPanel panel)
+        {
+            foreach (var child in panel.Children)
+            {
+                if (child is FontIcon icon)
+                    icon.Foreground = active ? accent : muted;
+                if (child is TextBlock text)
+                    text.Foreground = active ? accent : muted;
+            }
+        }
     }
 }

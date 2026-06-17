@@ -19,22 +19,52 @@
             <Frame x:Name="ContentFrame" Grid.Row="0" />
 
             <Border Grid.Row="1" Background="{StaticResource SurfaceElevatedBrush}"
-                    BorderBrush="#15FFFFFF" BorderThickness="0,1,0,0" Padding="0,8,0,12">
-                <NavigationView x:Name="NavView"
-                                IsBackButtonVisible="Collapsed"
-                                IsSettingsVisible="False"
-                                PaneDisplayMode="Bottom"
-                                SelectionChanged="NavView_SelectionChanged">
-                    <NavigationView.MenuItems>
-                        <NavigationViewItem Content="Train" Tag="Train" Icon="Play" />
-                        <NavigationViewItem Content="Programs" Tag="Programs" Icon="List" />
-                        <NavigationViewItem Content="Learn" Tag="Learn" Icon="Bookmarks" />
-                        <NavigationViewItem Content="History" Tag="History" Icon="Clock" />
-                    </NavigationView.MenuItems>
-                    <NavigationView.FooterMenuItems>
-                        <NavigationViewItem Content="Profile" Tag="Profile" Icon="Contact" />
-                    </NavigationView.FooterMenuItems>
-                </NavigationView>
+                    BorderBrush="#15FFFFFF" BorderThickness="0,1,0,0" Padding="8,8,8,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Name="NavTrain" Grid.Column="0" Click="NavButton_Click" Tag="Train"
+                            Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch">
+                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                            <FontIcon Glyph="&#xE768;" FontSize="18" />
+                            <TextBlock Text="Train" FontSize="10" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavPrograms" Grid.Column="1" Click="NavButton_Click" Tag="Programs"
+                            Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch">
+                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                            <FontIcon Glyph="&#xE8FD;" FontSize="18" />
+                            <TextBlock Text="Programs" FontSize="10" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavLearn" Grid.Column="2" Click="NavButton_Click" Tag="Learn"
+                            Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch">
+                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                            <FontIcon Glyph="&#xE82D;" FontSize="18" />
+                            <TextBlock Text="Learn" FontSize="10" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavHistory" Grid.Column="3" Click="NavButton_Click" Tag="History"
+                            Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch">
+                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                            <FontIcon Glyph="&#xE81C;" FontSize="18" />
+                            <TextBlock Text="History" FontSize="10" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavProfile" Grid.Column="4" Click="NavButton_Click" Tag="Profile"
+                            Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch">
+                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                            <FontIcon Glyph="&#xE77B;" FontSize="18" />
+                            <TextBlock Text="Profile" FontSize="10" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
             </Border>
         </Grid>
 
