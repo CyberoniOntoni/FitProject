@@ -55,4 +55,4 @@ artifacts/
 # Misc
 *.log
 *.tmp
-*~.dotnet/
+*~
