@@ -89,13 +89,29 @@
                 </Button>
             </Border>
 
-            <Border Style="{StaticResource CardBorderStyle}">
-                <StackPanel Spacing="8">
-                    <TextBlock Style="{StaticResource CaptionStyle}">
-                        <Run Text="{x:Bind ViewModel.Data.PersonalRecords.Count, Mode=OneWay}" />
-                        <Run Text=" personal records" />
-                    </TextBlock>
-                </StackPanel>
+            <Border Style="{StaticResource CardBorderStyle}" Padding="0">
+                <Button Click="OpenPersonalRecords_Click" HorizontalAlignment="Stretch"
+                        Background="Transparent" BorderThickness="0" Padding="16">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon Grid.Column="0" Glyph="&#xE734;" FontSize="18"
+                                  Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                            <TextBlock Text="Personal Records" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Style="{StaticResource CaptionStyle}">
+                                <Run Text="{x:Bind ViewModel.Data.PersonalRecords.Count, Mode=OneWay}" />
+                                <Run Text=" records synced from workouts" />
+                            </TextBlock>
+                        </StackPanel>
+                        <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="14"
+                                  Foreground="{StaticResource TextTertiaryBrush}" VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
             </Border>
 
             <Button Content="Refresh Data" Style="{StaticResource PrimaryButtonStyle}"

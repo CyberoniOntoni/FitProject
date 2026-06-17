@@ -239,13 +239,49 @@ public sealed class FPPersonalRecord
     public string? PreviousValue { get; set; }
 }
 
+public sealed class FPFormField
+{
+    public string Id { get; set; } = "";
+    public string Type { get; set; } = "";
+    public string Question { get; set; } = "";
+    public bool Required { get; set; }
+    public int Index { get; set; }
+    public int MaxRating { get; set; } = 5;
+    public int ScaleMin { get; set; } = 1;
+    public int ScaleMax { get; set; } = 10;
+    public string? ScaleMinLabel { get; set; }
+    public string? ScaleMaxLabel { get; set; }
+    public List<string> Options { get; set; } = [];
+}
+
+public sealed class FPFormAnswer
+{
+    public string FieldId { get; set; } = "";
+    public string Question { get; set; } = "";
+    public string Type { get; set; } = "";
+    public string Value { get; set; } = "";
+}
+
+public sealed class FPFormSubmission
+{
+    public string ClientId { get; set; } = "";
+    public DateTime SubmittedAt { get; set; }
+    public List<FPFormAnswer> Answers { get; set; } = [];
+}
+
 public sealed class FPForm
 {
     public string Id { get; set; } = "";
     public string Title { get; set; } = "";
     public string? Description { get; set; }
-    public bool IsCompleted { get; set; }
+    public string? CreatorId { get; set; }
     public DateTime? DueDate { get; set; }
+    public List<FPFormField> Fields { get; set; } = [];
+    public List<FPFormSubmission> Submissions { get; set; } = [];
+    public int NewResponses { get; set; }
+
+    public bool IsCompletedFor(string userId) =>
+        Submissions.Any(s => s.ClientId == userId);
 }
 
 public sealed class FPAssignedProgram

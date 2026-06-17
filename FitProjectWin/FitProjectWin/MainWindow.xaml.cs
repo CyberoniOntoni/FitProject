@@ -28,6 +28,24 @@ public sealed partial class MainWindow : Window
                 if (_vm.ShowWorkoutSession && _vm.WorkoutSession is not null)
                     WorkoutPage.Bind(_vm.WorkoutSession);
             }
+            if (e.PropertyName is nameof(MainViewModel.ShowFormFill))
+            {
+                FormOverlay.Visibility = _vm.ShowFormFill ? Visibility.Visible : Visibility.Collapsed;
+                if (_vm.ShowFormFill && _vm.ActiveForm is not null)
+                    FormPage.Bind(_vm.ActiveForm);
+            }
+            if (e.PropertyName is nameof(MainViewModel.ShowContentDetail))
+            {
+                ContentOverlay.Visibility = _vm.ShowContentDetail ? Visibility.Visible : Visibility.Collapsed;
+                if (_vm.ShowContentDetail && _vm.ActiveContent is not null)
+                    ContentPage.Bind(_vm.ActiveContent);
+            }
+            if (e.PropertyName is nameof(MainViewModel.ShowWorkoutLogDetail))
+            {
+                LogOverlay.Visibility = _vm.ShowWorkoutLogDetail ? Visibility.Visible : Visibility.Collapsed;
+                if (_vm.ShowWorkoutLogDetail && _vm.ActiveWorkoutLog is not null)
+                    LogPage.Bind(_vm.ActiveWorkoutLog);
+            }
         };
 
         UpdateUI();
@@ -70,6 +88,7 @@ public sealed partial class MainWindow : Window
             "Profile" => new ProfilePage(),
             "Habits" => new HabitsPage(),
             "Measurements" => new MeasurementsPage(),
+            "PersonalRecords" => new PersonalRecordsPage(),
             _ => null
         };
         if (page is not null) ContentFrame.Content = page;

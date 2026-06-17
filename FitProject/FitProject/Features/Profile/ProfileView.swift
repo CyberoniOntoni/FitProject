@@ -106,8 +106,25 @@ struct ProfileView: View {
                 )
             }
 
-            menuRow(icon: "trophy", title: "Personal Records", badge: "\(appState.personalRecords.count)")
-            menuRow(icon: "doc.text", title: "Forms", badge: "\(appState.forms.filter { !$0.isCompleted }.count) pending")
+            NavigationLink {
+                PersonalRecordsView()
+            } label: {
+                trackMenuRow(
+                    icon: "trophy",
+                    title: "Personal Records",
+                    subtitle: "\(appState.personalRecords.count) records logged"
+                )
+            }
+
+            NavigationLink {
+                FormsListView()
+            } label: {
+                trackMenuRow(
+                    icon: "doc.text",
+                    title: "Forms",
+                    subtitle: pendingFormsCount
+                )
+            }
         }
         .background(BWSTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: BWSTheme.cardRadius))
@@ -139,24 +156,10 @@ struct ProfileView: View {
         .padding(.vertical, 14)
     }
 
-    private func menuRow(icon: String, title: String, badge: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .foregroundStyle(BWSTheme.accent)
-                .frame(width: 28)
-            Text(title)
-                .font(.system(size: 16))
-                .foregroundStyle(BWSTheme.textPrimary)
-            Spacer()
-            Text(badge)
-                .font(BWSTheme.captionFont)
-                .foregroundStyle(BWSTheme.textTertiary)
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(BWSTheme.textTertiary)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+    private var pendingFormsCount: String {
+        guard let userId = appState.authService.currentUser?.id else { return "0 pending" }
+        let pending = appState.forms.filter { !$0.isCompleted(for: userId) }.count
+        return "\(pending) pending"
     }
 
     private var signOutButton: some View {

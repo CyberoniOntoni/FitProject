@@ -53,7 +53,12 @@ public sealed partial class HistoryPage : Page
         }
 
         foreach (var log in ViewModel.Data.WorkoutLogs)
-            HistoryList.Children.Add(BuildLogCard(log));
+        {
+            var card = BuildLogCard(log);
+            if (card.Child is Button btn)
+                btn.Click += (_, _) => App.ViewModel.OpenWorkoutLog(log);
+            HistoryList.Children.Add(card);
+        }
 
         if (ViewModel.Data.WorkoutLogs.Count == 0)
         {
@@ -105,11 +110,18 @@ public sealed partial class HistoryPage : Page
                 FontSize = 12
             });
 
-        return new Border
+        var button = new Button
         {
-            Style = (Style)Application.Current.Resources["CardBorderStyle"],
-            Margin = new Thickness(0, 0, 0, 8),
-            Child = panel
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            Background = (Brush)Application.Current.Resources["SurfaceBrush"]!,
+            BorderBrush = (Brush)Application.Current.Resources["SurfaceHighlightBrush"]!,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(12),
+            Padding = new Thickness(16),
+            Content = panel,
+            Margin = new Thickness(0, 0, 0, 8)
         };
+        return new Border { Child = button };
     }
 }

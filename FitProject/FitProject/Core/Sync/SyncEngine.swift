@@ -110,4 +110,17 @@ final class SyncEngine: ObservableObject {
     func pushPersonalRecord(_ record: FPPersonalRecord, userId: String) async throws {
         try await firestore.savePersonalRecord(record, userId: userId)
     }
+
+    func pushFormSubmission(formId: String, userId: String, answers: [FPFormAnswer], appState: AppState) async throws {
+        try await firestore.submitForm(formId: formId, clientId: userId, answers: answers)
+        if let index = appState.forms.firstIndex(where: { $0.id == formId }) {
+            var form = appState.forms[index]
+            form.submissions.append(FPFormSubmission(
+                clientId: userId,
+                submittedAt: Date(),
+                answers: answers
+            ))
+            appState.forms[index] = form
+        }
+    }
 }

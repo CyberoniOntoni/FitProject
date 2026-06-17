@@ -3,6 +3,9 @@ import SwiftUI
 struct LearnView: View {
     @EnvironmentObject var appState: AppState
     @State private var selectedContent: FPContent?
+    @State private var selectedForm: FPForm?
+
+    private var userId: String? { appState.authService.currentUser?.id }
 
     var body: some View {
         NavigationStack {
@@ -23,6 +26,9 @@ struct LearnView: View {
             .navigationBarTitleDisplayMode(.large)
             .navigationDestination(item: $selectedContent) { content in
                 ContentDetailView(content: content)
+            }
+            .navigationDestination(item: $selectedForm) { form in
+                FormFillView(form: form)
             }
         }
     }
@@ -52,38 +58,53 @@ struct LearnView: View {
                 .padding(.horizontal, 20)
 
             ForEach(appState.forms) { form in
-                BWSCard {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(form.title)
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(BWSTheme.textPrimary)
-                            if let desc = form.description {
-                                Text(desc)
-                                    .font(BWSTheme.captionFont)
-                                    .foregroundStyle(BWSTheme.textSecondary)
-                                    .lineLimit(2)
-                            }
+                Group {
+                    if let userId, form.isCompleted(for: userId) {
+                        formCard(form, completed: true)
+                    } else {
+                        Button { selectedForm = form } label: {
+                            formCard(form, completed: false)
                         }
-                        Spacer()
-                        if form.isCompleted {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(BWSTheme.success)
-                        } else {
-                            Text("Pending")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(BWSTheme.warning)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(BWSTheme.warning.opacity(0.15))
-                                .clipShape(Capsule())
-                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 20)
             }
         }
         .padding(.bottom, 16)
+    }
+
+    private func formCard(_ form: FPForm, completed: Bool) -> some View {
+        BWSCard {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(form.title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(BWSTheme.textPrimary)
+                    if let desc = form.description {
+                        Text(desc)
+                            .font(BWSTheme.captionFont)
+                            .foregroundStyle(BWSTheme.textSecondary)
+                            .lineLimit(2)
+                    }
+                }
+                Spacer()
+                if completed {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(BWSTheme.success)
+                } else {
+                    Text("Pending")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(BWSTheme.warning)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(BWSTheme.warning.opacity(0.15))
+                        .clipShape(Capsule())
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(BWSTheme.textTertiary)
+                }
+            }
+        }
     }
 
     private var contentSection: some View {

@@ -30,29 +30,50 @@ final class FirestoreService {
     // MARK: - Programs
 
     func fetchAssignedPrograms(userId: String) async throws -> [FPAssignedProgram] {
-        let snapshot = try await db.collection("assignedPrograms")
-            .whereField("userId", isEqualTo: userId)
+        do {
+            let snapshot = try await db.collection("assignedPrograms")
+                .whereField("userId", isEqualTo: userId)
+                .getDocuments()
+
+            if !snapshot.documents.isEmpty {
+                var assigned: [FPAssignedProgram] = []
+                for doc in snapshot.documents {
+                    let data = doc.data()
+                    let programId = data["programId"] as? String ?? ""
+                    var item = FPAssignedProgram(
+                        id: doc.documentID,
+                        programId: programId,
+                        userId: userId,
+                        coachId: data["coachId"] as? String,
+                        startDate: (data["startDate"] as? Timestamp)?.dateValue(),
+                        currentWeek: data["currentWeek"] as? Int ?? 1,
+                        completedWorkouts: data["completedWorkouts"] as? Int ?? 0
+                    )
+                    if !programId.isEmpty {
+                        item.program = try? await fetchProgram(programId: programId)
+                    }
+                    assigned.append(item)
+                }
+                return assigned
+            }
+        } catch {
+            // assignedPrograms may be restricted; fall back to programs.userIds
+        }
+
+        let snapshot = try await db.collection("programs")
+            .whereField("userIds", arrayContains: userId)
             .getDocuments()
 
-        var assigned: [FPAssignedProgram] = []
-        for doc in snapshot.documents {
-            let data = doc.data()
-            let programId = data["programId"] as? String ?? ""
-            var item = FPAssignedProgram(
-                id: doc.documentID,
-                programId: programId,
+        return snapshot.documents.compactMap { doc -> FPAssignedProgram? in
+            guard let program = parseProgram(doc) else { return nil }
+            return FPAssignedProgram(
+                id: "assigned-\(doc.documentID)",
+                programId: doc.documentID,
                 userId: userId,
-                coachId: data["coachId"] as? String,
-                startDate: (data["startDate"] as? Timestamp)?.dateValue(),
-                currentWeek: data["currentWeek"] as? Int ?? 1,
-                completedWorkouts: data["completedWorkouts"] as? Int ?? 0
+                coachId: program.creatorIds.first,
+                program: program
             )
-            if !programId.isEmpty {
-                item.program = try? await fetchProgram(programId: programId)
-            }
-            assigned.append(item)
         }
-        return assigned
     }
 
     func fetchCreatorPrograms(userId: String) async throws -> [FPProgram] {
@@ -276,19 +297,31 @@ final class FirestoreService {
 
     func fetchForms(userId: String) async throws -> [FPForm] {
         let snapshot = try await db.collection("forms")
-            .whereField("userIds", arrayContains: userId)
+            .whereField("clientIds", arrayContains: userId)
             .getDocuments()
 
-        return snapshot.documents.compactMap { doc in
-            let data = doc.data()
-            return FPForm(
-                id: doc.documentID,
-                title: data["title"] as? String ?? "",
-                description: data["description"] as? String,
-                isCompleted: data["isCompleted"] as? Bool ?? false,
-                dueDate: (data["dueDate"] as? Timestamp)?.dateValue()
-            )
+        return snapshot.documents.compactMap { parseForm($0) }
+    }
+
+    func submitForm(formId: String, clientId: String, answers: [FPFormAnswer]) async throws {
+        let ref = db.collection("forms").document(formId)
+        let doc = try await ref.getDocument()
+        guard let data = doc.data() else {
+            throw FitProsError.notFound("Form")
         }
+
+        var submissions = parseFormSubmissions(from: data)
+        submissions.append(FPFormSubmission(
+            clientId: clientId,
+            submittedAt: Date(),
+            answers: answers
+        ))
+
+        let newResponses = (data["newResponses"] as? Int ?? 0) + 1
+        try await ref.updateData([
+            "submissions": submissions.map { submissionToDict($0) },
+            "newResponses": newResponses
+        ])
     }
 
     // MARK: - Real-time Listeners
@@ -455,6 +488,72 @@ final class FirestoreService {
             totalVolume: data["totalVolume"] as? Double ?? 0,
             prCount: data["prCount"] as? Int ?? 0
         )
+    }
+
+    private func parseForm(_ doc: DocumentSnapshot) -> FPForm? {
+        guard let data = doc.data() else { return nil }
+        return FPForm(
+            id: doc.documentID,
+            title: data["title"] as? String ?? "",
+            description: data["description"] as? String,
+            creatorId: data["creatorId"] as? String,
+            fields: parseFormFields(from: data),
+            submissions: parseFormSubmissions(from: data),
+            dueDate: (data["dueDate"] as? Timestamp)?.dateValue()
+        )
+    }
+
+    private func parseFormFields(from data: [String: Any]) -> [FPFormField] {
+        guard let rawFields = data["fields"] as? [[String: Any]] else { return [] }
+        return rawFields.compactMap { field in
+            FPFormField(
+                id: field["id"] as? String ?? UUID().uuidString,
+                type: field["type"] as? String ?? "Text",
+                question: field["question"] as? String ?? "",
+                required: field["required"] as? Bool ?? false,
+                index: field["index"] as? Int ?? 0,
+                maxRating: (field["maxRating"] as? Int).flatMap { $0 > 0 ? $0 : nil } ?? 5,
+                scaleMin: (field["scaleMin"] as? Int).flatMap { $0 > 0 ? $0 : nil } ?? 1,
+                scaleMax: (field["scaleMax"] as? Int).flatMap { $0 > 0 ? $0 : nil } ?? 10,
+                scaleMinLabel: field["scaleMinLabel"] as? String,
+                scaleMaxLabel: field["scaleMaxLabel"] as? String,
+                options: field["options"] as? [String] ?? []
+            )
+        }.sorted { $0.index < $1.index }
+    }
+
+    private func parseFormSubmissions(from data: [String: Any]) -> [FPFormSubmission] {
+        let rawSubmissions = (data["submissions"] ?? data["responses"]) as? [[String: Any]] ?? []
+        return rawSubmissions.compactMap { submission in
+            let answers = (submission["answers"] as? [[String: Any]] ?? []).map { answer in
+                FPFormAnswer(
+                    fieldId: answer["fieldId"] as? String ?? "",
+                    question: answer["question"] as? String ?? "",
+                    type: answer["type"] as? String ?? "",
+                    value: answer["value"] as? String ?? ""
+                )
+            }
+            return FPFormSubmission(
+                clientId: submission["clientId"] as? String ?? "",
+                submittedAt: (submission["submittedAt"] as? Timestamp)?.dateValue() ?? Date(),
+                answers: answers
+            )
+        }
+    }
+
+    private func submissionToDict(_ submission: FPFormSubmission) -> [String: Any] {
+        [
+            "clientId": submission.clientId,
+            "submittedAt": Timestamp(date: submission.submittedAt),
+            "answers": submission.answers.map { answer in
+                [
+                    "fieldId": answer.fieldId,
+                    "question": answer.question,
+                    "type": answer.type,
+                    "value": answer.value
+                ] as [String: Any]
+            }
+        ]
     }
 
     private func exerciseToDict(_ exercise: FPLoggedExercise) -> [String: Any] {

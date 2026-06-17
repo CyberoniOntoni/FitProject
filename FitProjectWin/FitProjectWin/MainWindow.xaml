@@ -71,5 +71,17 @@
         <Grid x:Name="WorkoutOverlay" Visibility="Collapsed" Background="#CC000000">
             <views:WorkoutSessionPage x:Name="WorkoutPage" />
         </Grid>
+
+        <Grid x:Name="FormOverlay" Visibility="Collapsed" Background="#CC000000">
+            <views:FormFillPage x:Name="FormPage" MaxWidth="500" HorizontalAlignment="Center" />
+        </Grid>
+
+        <Grid x:Name="ContentOverlay" Visibility="Collapsed" Background="#CC000000">
+            <views:ContentDetailPage x:Name="ContentPage" MaxWidth="500" HorizontalAlignment="Center" />
+        </Grid>
+
+        <Grid x:Name="LogOverlay" Visibility="Collapsed" Background="#CC000000">
+            <views:WorkoutLogDetailPage x:Name="LogPage" MaxWidth="500" HorizontalAlignment="Center" />
+        </Grid>
     </Grid>
 </Window>

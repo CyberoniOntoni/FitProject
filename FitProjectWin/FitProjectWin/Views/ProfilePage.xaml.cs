@@ -14,4 +14,7 @@ public sealed partial class ProfilePage : Page
 
     private void OpenMeasurements_Click(object sender, RoutedEventArgs e) =>
         App.NavigationService?.Navigate("Measurements");
+
+    private void OpenPersonalRecords_Click(object sender, RoutedEventArgs e) =>
+        App.NavigationService?.Navigate("PersonalRecords");
 }

@@ -40,7 +40,13 @@ public sealed class AppDataService
             var fs = new FirestoreService(_auth.IdToken);
             var userId = _auth.CurrentUser.Id;
 
-            var programs = await fs.FetchCreatorProgramsAsync(userId);
+            var creatorPrograms = await fs.FetchCreatorProgramsAsync(userId);
+            var assignedPrograms = await fs.FetchAssignedProgramsAsync(userId);
+            var programs = creatorPrograms.ToList();
+            foreach (var assigned in assignedPrograms)
+                if (!programs.Any(p => p.Id == assigned.Id))
+                    programs.Add(assigned);
+
             var logs = await fs.FetchWorkoutLogsAsync(userId);
             var habits = await fs.FetchHabitsAsync(userId);
             var measurements = await fs.FetchMeasurementsAsync(userId);
@@ -252,6 +258,26 @@ public sealed class AppDataService
         var fs = new FirestoreService(_auth.IdToken);
         await fs.SaveMeasurementAsync(measurement, _auth.CurrentUser.Id);
         Measurements.Insert(0, measurement);
+        DataChanged?.Invoke();
+    }
+
+    public async Task SubmitFormAsync(string formId, List<FPFormAnswer> answers)
+    {
+        if (_auth.CurrentUser is null || _auth.IdToken is null) return;
+        var fs = new FirestoreService(_auth.IdToken);
+        await fs.SubmitFormAsync(formId, _auth.CurrentUser.Id, answers);
+
+        var form = Forms.FirstOrDefault(f => f.Id == formId);
+        if (form is not null)
+        {
+            form.Submissions.Add(new FPFormSubmission
+            {
+                ClientId = _auth.CurrentUser.Id,
+                SubmittedAt = DateTime.UtcNow,
+                Answers = answers
+            });
+            form.NewResponses++;
+        }
         DataChanged?.Invoke();
     }
 

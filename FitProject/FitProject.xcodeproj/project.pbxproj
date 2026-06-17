@@ -29,6 +29,9 @@
 		A10000010000000000000020 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000020 /* GoogleService-Info.plist */; };
 		A10000010000000000000023 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000022 /* Assets.xcassets */; };
 		A10000010000000000000024 /* YouTubeEmbedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000023 /* YouTubeEmbedView.swift */; };
+		A10000010000000000000025 /* FormFillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000024 /* FormFillView.swift */; };
+		A10000010000000000000026 /* FormsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000025 /* FormsListView.swift */; };
+		A10000010000000000000027 /* PersonalRecordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000026 /* PersonalRecordsView.swift */; };
 		A10000010000000000000021 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = A50000010000000000000001 /* FirebaseAuth */; };
 		A10000010000000000000022 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = A50000010000000000000002 /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
@@ -57,6 +60,9 @@
 		A20000010000000000000021 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A20000010000000000000022 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A20000010000000000000023 /* YouTubeEmbedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeEmbedView.swift; sourceTree = "<group>"; };
+		A20000010000000000000024 /* FormFillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormFillView.swift; sourceTree = "<group>"; };
+		A20000010000000000000025 /* FormsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormsListView.swift; sourceTree = "<group>"; };
+		A20000010000000000000026 /* PersonalRecordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalRecordsView.swift; sourceTree = "<group>"; };
 		A30000010000000000000001 /* FitProject.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FitProject.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -226,6 +232,8 @@
 			isa = PBXGroup;
 			children = (
 				A20000010000000000000016 /* LearnView.swift */,
+				A20000010000000000000024 /* FormFillView.swift */,
+				A20000010000000000000025 /* FormsListView.swift */,
 			);
 			path = Learn;
 			sourceTree = "<group>";
@@ -250,6 +258,7 @@
 			isa = PBXGroup;
 			children = (
 				A20000010000000000000019 /* ProfileView.swift */,
+				A20000010000000000000026 /* PersonalRecordsView.swift */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -368,6 +377,9 @@
 				A10000010000000000000018 /* MeasurementsView.swift in Sources */,
 				A10000010000000000000019 /* ProfileView.swift in Sources */,
 				A10000010000000000000024 /* YouTubeEmbedView.swift in Sources */,
+				A10000010000000000000025 /* FormFillView.swift in Sources */,
+				A10000010000000000000026 /* FormsListView.swift in Sources */,
+				A10000010000000000000027 /* PersonalRecordsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -45,6 +45,9 @@ DerivedData/
 *.xcworkspace/xcuserdata/
 
 # NuGet / .NET
+.dotnet/
+.nuget/
+.local/
 project.lock.json
 project.fragment.lock.json
 artifacts/
@@ -52,4 +55,4 @@ artifacts/
 # Misc
 *.log
 *.tmp
-*~
+*~.dotnet/

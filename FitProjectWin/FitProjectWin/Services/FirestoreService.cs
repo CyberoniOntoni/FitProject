@@ -59,6 +59,32 @@ public sealed class FirestoreService
             .ToList();
     }
 
+    public async Task<List<FPProgram>> FetchAssignedProgramsAsync(string userId)
+    {
+        var results = await RunQueryAsync(new
+        {
+            structuredQuery = new
+            {
+                from = new[] { new { collectionId = "programs" } },
+                where = new
+                {
+                    fieldFilter = new
+                    {
+                        field = new { fieldPath = "userIds" },
+                        op = "ARRAY_CONTAINS",
+                        value = new { stringValue = userId }
+                    }
+                },
+                limit = 50
+            }
+        });
+
+        return results
+            .Where(r => r.TryGetProperty("document", out _))
+            .Select(r => FirestoreParser.ParseProgram(r.GetProperty("document")))
+            .ToList();
+    }
+
     public async Task<List<FPProgramWeek>> FetchProgramWeeksAsync(string programId)
     {
         var url = $"{FirebaseConfig.FirestoreBaseUrl}/programs/{programId}/programWeeks?pageSize=20";
@@ -371,7 +397,7 @@ public sealed class FirestoreService
                 {
                     fieldFilter = new
                     {
-                        field = new { fieldPath = "userIds" },
+                        field = new { fieldPath = "clientIds" },
                         op = "ARRAY_CONTAINS",
                         value = new { stringValue = userId }
                     }
@@ -380,19 +406,37 @@ public sealed class FirestoreService
             }
         });
 
-        return results.Where(r => r.TryGetProperty("document", out _)).Select(r =>
+        return results
+            .Where(r => r.TryGetProperty("document", out _))
+            .Select(r => FirestoreParser.ParseForm(r.GetProperty("document")))
+            .ToList();
+    }
+
+    public async Task SubmitFormAsync(string formId, string clientId, List<FPFormAnswer> answers)
+    {
+        var doc = await GetDocumentAsync($"forms/{formId}");
+        var fields = doc.GetProperty("fields");
+        var existing = FirestoreParser.ParseFormSubmissions(fields);
+
+        existing.Add(new FPFormSubmission
         {
-            var doc = r.GetProperty("document");
-            var fields = doc.GetProperty("fields");
-            return new FPForm
+            ClientId = clientId,
+            SubmittedAt = DateTime.UtcNow,
+            Answers = answers
+        });
+
+        var newResponses = FirestoreParser.GetInt(fields, "newResponses") + 1;
+        var url = $"{FirebaseConfig.FirestoreBaseUrl}/forms/{formId}?updateMask.fieldPaths=submissions&updateMask.fieldPaths=newResponses";
+        var body = new
+        {
+            fields = new Dictionary<string, object>
             {
-                Id = doc.GetProperty("name").GetString()!.Split('/').Last(),
-                Title = FirestoreParser.GetString(fields, "title") ?? "",
-                Description = FirestoreParser.GetString(fields, "description"),
-                IsCompleted = FirestoreParser.GetBool(fields, "isCompleted"),
-                DueDate = FirestoreParser.GetTimestamp(fields, "dueDate")
-            };
-        }).ToList();
+                ["submissions"] = FirestoreParser.FirestoreSubmissionArray(existing),
+                ["newResponses"] = FirestoreParser.FirestoreValue(newResponses)
+            }
+        };
+        var response = await _http.PatchAsJsonAsync(url, body);
+        response.EnsureSuccessStatusCode();
     }
 
     private async Task<JsonElement> GetDocumentAsync(string path)

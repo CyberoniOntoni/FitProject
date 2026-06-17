@@ -234,4 +234,155 @@ internal static class FirestoreParser
             if (val is not null) fields[key] = FirestoreValue(val);
         return fields;
     }
+
+    public static List<FPFormField> ParseFormFields(JsonElement fields)
+    {
+        if (!fields.TryGetProperty("fields", out var formFields) ||
+            !formFields.TryGetProperty("arrayValue", out var arr) ||
+            !arr.TryGetProperty("values", out var values))
+            return [];
+
+        var result = new List<FPFormField>();
+        foreach (var item in values.EnumerateArray())
+        {
+            if (!item.TryGetProperty("mapValue", out var map) || !map.TryGetProperty("fields", out var ff))
+                continue;
+
+            var options = new List<string>();
+            if (ff.TryGetProperty("options", out var optArr) &&
+                optArr.TryGetProperty("arrayValue", out var optValues) &&
+                optValues.TryGetProperty("values", out var optItems))
+            {
+                foreach (var opt in optItems.EnumerateArray())
+                    if (opt.TryGetProperty("stringValue", out var s))
+                        options.Add(s.GetString() ?? "");
+            }
+
+            result.Add(new FPFormField
+            {
+                Id = GetString(ff, "id") ?? Guid.NewGuid().ToString(),
+                Type = GetString(ff, "type") ?? "Text",
+                Question = GetString(ff, "question") ?? "",
+                Required = GetBool(ff, "required"),
+                Index = GetInt(ff, "index"),
+                MaxRating = GetInt(ff, "maxRating") is var mr and > 0 ? mr : 5,
+                ScaleMin = GetInt(ff, "scaleMin") is var smn and > 0 ? smn : 1,
+                ScaleMax = GetInt(ff, "scaleMax") is var smx and > 0 ? smx : 10,
+                ScaleMinLabel = GetString(ff, "scaleMinLabel"),
+                ScaleMaxLabel = GetString(ff, "scaleMaxLabel"),
+                Options = options
+            });
+        }
+        return result.OrderBy(f => f.Index).ToList();
+    }
+
+    public static List<FPFormSubmission> ParseFormSubmissions(JsonElement fields)
+    {
+        if (!fields.TryGetProperty("submissions", out var submissionsField) &&
+            !fields.TryGetProperty("responses", out submissionsField))
+            return [];
+
+        if (!submissionsField.TryGetProperty("arrayValue", out var arr) ||
+            !arr.TryGetProperty("values", out var values))
+            return [];
+
+        var result = new List<FPFormSubmission>();
+        foreach (var item in values.EnumerateArray())
+        {
+            if (!item.TryGetProperty("mapValue", out var map) || !map.TryGetProperty("fields", out var sf))
+                continue;
+
+            var answers = new List<FPFormAnswer>();
+            if (sf.TryGetProperty("answers", out var answersArr) &&
+                answersArr.TryGetProperty("arrayValue", out var answersValues) &&
+                answersValues.TryGetProperty("values", out var answerItems))
+            {
+                foreach (var answerItem in answerItems.EnumerateArray())
+                {
+                    if (!answerItem.TryGetProperty("mapValue", out var am) || !am.TryGetProperty("fields", out var af))
+                        continue;
+                    answers.Add(new FPFormAnswer
+                    {
+                        FieldId = GetString(af, "fieldId") ?? "",
+                        Question = GetString(af, "question") ?? "",
+                        Type = GetString(af, "type") ?? "",
+                        Value = GetString(af, "value") ?? ""
+                    });
+                }
+            }
+
+            result.Add(new FPFormSubmission
+            {
+                ClientId = GetString(sf, "clientId") ?? "",
+                SubmittedAt = GetTimestamp(sf, "submittedAt") ?? DateTime.UtcNow,
+                Answers = answers
+            });
+        }
+        return result;
+    }
+
+    public static FPForm ParseForm(JsonElement doc)
+    {
+        var fields = doc.GetProperty("fields");
+        var name = doc.GetProperty("name").GetString() ?? "";
+        return new FPForm
+        {
+            Id = name.Split('/').Last(),
+            Title = GetString(fields, "title") ?? "",
+            Description = GetString(fields, "description"),
+            CreatorId = GetString(fields, "creatorId"),
+            DueDate = GetTimestamp(fields, "dueDate"),
+            Fields = ParseFormFields(fields),
+            Submissions = ParseFormSubmissions(fields),
+            NewResponses = GetInt(fields, "newResponses")
+        };
+    }
+
+    public static object FirestoreMapArray(IEnumerable<Dictionary<string, object?>> maps) => new
+    {
+        arrayValue = new
+        {
+            values = maps.Select(m => new
+            {
+                mapValue = new { fields = FirestoreFields(m) }
+            })
+        }
+    };
+
+    public static object FirestoreSubmissionArray(IEnumerable<FPFormSubmission> submissions) => new
+    {
+        arrayValue = new
+        {
+            values = submissions.Select(s => new
+            {
+                mapValue = new
+                {
+                    fields = new Dictionary<string, object>
+                    {
+                        ["clientId"] = FirestoreValue(s.ClientId),
+                        ["submittedAt"] = FirestoreValue(s.SubmittedAt),
+                        ["answers"] = new
+                        {
+                            arrayValue = new
+                            {
+                                values = s.Answers.Select(a => new
+                                {
+                                    mapValue = new
+                                    {
+                                        fields = FirestoreFields(new Dictionary<string, object?>
+                                        {
+                                            ["fieldId"] = a.FieldId,
+                                            ["question"] = a.Question,
+                                            ["type"] = a.Type,
+                                            ["value"] = a.Value
+                                        })
+                                    }
+                                })
+                            }
+                        }
+                    }
+                }
+            })
+        }
+    };
 }

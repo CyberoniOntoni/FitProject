@@ -17,6 +17,12 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private bool _showWorkoutSession;
     [ObservableProperty] private WorkoutSessionViewModel? _workoutSession;
+    [ObservableProperty] private bool _showFormFill;
+    [ObservableProperty] private FPForm? _activeForm;
+    [ObservableProperty] private FPContent? _activeContent;
+    [ObservableProperty] private bool _showContentDetail;
+    [ObservableProperty] private FPWorkoutLog? _activeWorkoutLog;
+    [ObservableProperty] private bool _showWorkoutLogDetail;
 
     public List<NavItem> NavItems { get; } =
     [
@@ -70,6 +76,42 @@ public partial class MainViewModel : ObservableObject
         var program = Data.NextProgram ?? Data.Programs.FirstOrDefault(p => p.Id == workout.ProgramId);
         WorkoutSession = new WorkoutSessionViewModel(Data, Auth, workout, program);
         ShowWorkoutSession = true;
+    }
+
+    public void OpenForm(FPForm form)
+    {
+        ActiveForm = form;
+        ShowFormFill = true;
+    }
+
+    public void CloseFormFill()
+    {
+        ShowFormFill = false;
+        ActiveForm = null;
+    }
+
+    public void OpenContent(FPContent content)
+    {
+        ActiveContent = content;
+        ShowContentDetail = true;
+    }
+
+    public void CloseContentDetail()
+    {
+        ShowContentDetail = false;
+        ActiveContent = null;
+    }
+
+    public void OpenWorkoutLog(FPWorkoutLog log)
+    {
+        ActiveWorkoutLog = log;
+        ShowWorkoutLogDetail = true;
+    }
+
+    public void CloseWorkoutLogDetail()
+    {
+        ShowWorkoutLogDetail = false;
+        ActiveWorkoutLog = null;
     }
 
     [RelayCommand]

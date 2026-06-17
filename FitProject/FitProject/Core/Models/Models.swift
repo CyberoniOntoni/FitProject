@@ -278,21 +278,45 @@ struct FPPersonalRecord: Identifiable, Codable, Equatable {
 
 // MARK: - Form
 
+struct FPFormField: Identifiable, Codable, Equatable {
+    let id: String
+    var type: String
+    var question: String
+    var required: Bool = false
+    var index: Int = 0
+    var maxRating: Int = 5
+    var scaleMin: Int = 1
+    var scaleMax: Int = 10
+    var scaleMinLabel: String?
+    var scaleMaxLabel: String?
+    var options: [String] = []
+}
+
+struct FPFormAnswer: Codable, Equatable {
+    var fieldId: String
+    var question: String
+    var type: String
+    var value: String
+}
+
+struct FPFormSubmission: Codable, Equatable {
+    var clientId: String
+    var submittedAt: Date
+    var answers: [FPFormAnswer]
+}
+
 struct FPForm: Identifiable, Codable, Equatable {
     let id: String
     var title: String
     var description: String?
-    var questions: [FPFormQuestion] = []
-    var isCompleted: Bool = false
+    var creatorId: String?
+    var fields: [FPFormField] = []
+    var submissions: [FPFormSubmission] = []
     var dueDate: Date?
-}
 
-struct FPFormQuestion: Identifiable, Codable, Equatable {
-    let id: String
-    var text: String
-    var type: String
-    var options: [String]?
-    var answer: String?
+    func isCompleted(for userId: String) -> Bool {
+        submissions.contains { $0.clientId == userId }
+    }
 }
 
 // MARK: - Assigned Program

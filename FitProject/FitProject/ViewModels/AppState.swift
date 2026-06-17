@@ -185,6 +185,16 @@ final class AppState: ObservableObject {
         activeWorkout = nil
     }
 
+    func submitForm(_ form: FPForm, answers: [FPFormAnswer]) async throws {
+        guard let userId = authService.currentUser?.id else { return }
+        try await syncEngine.pushFormSubmission(
+            formId: form.id,
+            userId: userId,
+            answers: answers,
+            appState: self
+        )
+    }
+
     func checkForPR(exercise: FPWorkoutExercise, set: FPLoggedSet) -> FPPersonalRecord? {
         guard set.isCompleted,
               let weightStr = set.weight,

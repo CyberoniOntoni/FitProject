@@ -1,0 +1,28 @@
+<Page
+    x:Class="FitProjectWin.Views.FormFillPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{StaticResource BackgroundBrush}">
+
+    <Grid Padding="24,16,24,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Button Content="← Back" Click="Back_Click" HorizontalAlignment="Left"
+                    Background="Transparent" Foreground="{StaticResource AccentBrush}" />
+            <TextBlock x:Name="TitleText" Style="{StaticResource HeadlineStyle}"
+                       HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="280" />
+        </Grid>
+
+        <ScrollViewer Grid.Row="1">
+            <StackPanel x:Name="FieldsPanel" Spacing="16" />
+        </ScrollViewer>
+
+        <Button Grid.Row="2" Content="Submit Form" Style="{StaticResource PrimaryButtonStyle}"
+                Click="Submit_Click" Margin="0,16,0,0" />
+    </Grid>
+</Page>
