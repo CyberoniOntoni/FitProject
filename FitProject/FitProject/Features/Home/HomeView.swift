@@ -143,9 +143,13 @@ struct HomeView: View {
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(BWSTheme.textPrimary)
                         Spacer()
-                        Text("\(appState.habits.filter { $0.progress >= 1 }.count)/\(appState.habits.count)")
-                            .font(BWSTheme.captionFont)
-                            .foregroundStyle(BWSTheme.textSecondary)
+                        NavigationLink {
+                            HabitsView()
+                        } label: {
+                            Text("See all")
+                                .font(BWSTheme.captionFont)
+                                .foregroundStyle(BWSTheme.accent)
+                        }
                     }
 
                     ForEach(appState.habits) { habit in

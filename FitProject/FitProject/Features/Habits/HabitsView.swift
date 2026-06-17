@@ -73,6 +73,7 @@ struct HabitsView: View {
 struct HabitDetailCard: View {
     let habit: FPHabit
     let onUpdate: (Double) -> Void
+    @State private var inputValue = ""
 
     var body: some View {
         BWSCard {
@@ -86,7 +87,7 @@ struct HabitDetailCard: View {
                         HStack(spacing: 4) {
                             Image(systemName: "flame.fill")
                                 .foregroundStyle(BWSTheme.warning)
-                            Text("\(habit.streak)")
+                            Text("\(habit.streak) day streak")
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundStyle(BWSTheme.warning)
                         }
@@ -110,8 +111,62 @@ struct HabitDetailCard: View {
                 }
                 .frame(height: 6)
 
-                HabitCounterView(habit: habit, onUpdate: onUpdate)
+                Text(habit.progress >= 1 ? "✓ Complete" : habit.progressText)
+                    .font(BWSTheme.captionFont)
+                    .foregroundStyle(habit.progress >= 1 ? BWSTheme.success : BWSTheme.textSecondary)
+
+                HStack(spacing: 12) {
+                    Text("Log value:")
+                        .font(BWSTheme.captionFont)
+                        .foregroundStyle(BWSTheme.textSecondary)
+                    TextField("0", text: $inputValue)
+                        .keyboardType(.decimalPad)
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(BWSTheme.surfaceHighlight)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .frame(width: 100)
+                    Button("Save") {
+                        if let value = Double(inputValue) {
+                            onUpdate(value)
+                        }
+                    }
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(BWSTheme.accentGradient)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+
+                HStack(spacing: 8) {
+                    quickAction("-1") { onUpdate(max(0, habit.currentValue - 1)) }
+                    quickAction("+1") { onUpdate(habit.currentValue + 1) }
+                    quickAction("Hit target") { onUpdate(habit.targetValue) }
+                }
             }
+        }
+        .onAppear { syncInput() }
+        .onChange(of: habit.currentValue) { _, _ in syncInput() }
+    }
+
+    private func syncInput() {
+        inputValue = habit.currentValue.truncatingRemainder(dividingBy: 1) == 0
+            ? String(format: "%.0f", habit.currentValue)
+            : String(format: "%.1f", habit.currentValue)
+    }
+
+    private func quickAction(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(BWSTheme.textPrimary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(BWSTheme.surfaceHighlight)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }
 }

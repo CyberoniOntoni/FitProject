@@ -28,6 +28,7 @@
 		A10000010000000000000019 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000019 /* ProfileView.swift */; };
 		A10000010000000000000020 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000020 /* GoogleService-Info.plist */; };
 		A10000010000000000000023 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000022 /* Assets.xcassets */; };
+		A10000010000000000000024 /* YouTubeEmbedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000023 /* YouTubeEmbedView.swift */; };
 		A10000010000000000000021 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = A50000010000000000000001 /* FirebaseAuth */; };
 		A10000010000000000000022 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = A50000010000000000000002 /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
@@ -55,6 +56,7 @@
 		A20000010000000000000020 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		A20000010000000000000021 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A20000010000000000000022 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A20000010000000000000023 /* YouTubeEmbedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeEmbedView.swift; sourceTree = "<group>"; };
 		A30000010000000000000001 /* FitProject.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FitProject.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -264,6 +266,7 @@
 			isa = PBXGroup;
 			children = (
 				A20000010000000000000010 /* SharedComponents.swift */,
+				A20000010000000000000023 /* YouTubeEmbedView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -364,6 +367,7 @@
 				A10000010000000000000017 /* HabitsView.swift in Sources */,
 				A10000010000000000000018 /* MeasurementsView.swift in Sources */,
 				A10000010000000000000019 /* ProfileView.swift in Sources */,
+				A10000010000000000000024 /* YouTubeEmbedView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

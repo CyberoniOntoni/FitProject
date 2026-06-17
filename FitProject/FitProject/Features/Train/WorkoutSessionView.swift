@@ -145,27 +145,8 @@ struct WorkoutSessionView: View {
                     .tracking(1.5)
             }
 
-            if let url = exercise.videoThumbnailURL {
-                ZStack {
-                    AsyncImage(url: url) { image in
-                        image.resizable().aspectRatio(16/9, contentMode: .fill)
-                    } placeholder: {
-                        Rectangle().fill(BWSTheme.surfaceHighlight)
-                    }
-                    .frame(height: 200)
-                    .clipShape(RoundedRectangle(cornerRadius: BWSTheme.cardRadius))
-
-                    if exercise.youtubeURL != nil {
-                        Image(systemName: "play.circle.fill")
-                            .font(.system(size: 48))
-                            .foregroundStyle(.white.opacity(0.9))
-                    }
-                }
-                .onTapGesture {
-                    if let url = exercise.youtubeURL {
-                        UIApplication.shared.open(url)
-                    }
-                }
+            if exercise.videoThumbnailURL != nil || exercise.youtubeId != nil {
+                ExerciseVideoPreview(exercise: exercise)
             }
 
             Text(exercise.name)
