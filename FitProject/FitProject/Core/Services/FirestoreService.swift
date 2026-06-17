@@ -207,35 +207,134 @@ final class FirestoreService {
 
     // MARK: - Measurements
 
-    func fetchMeasurements(userId: String) async throws -> [FPMeasurement] {
+    func fetchAllMeasurements(userId: String) async throws -> [FPMeasurement] {
+        async let logs = fetchMeasurementLogs(userId: userId)
+        async let legacy = fetchLegacyMeasurements(userId: userId)
+        return mergeMeasurements(logs: try await logs, legacy: try await legacy)
+    }
+
+    func fetchMeasurementLogs(userId: String) async throws -> [FPMeasurement] {
+        let snapshot = try await db.collection("measurementLogs")
+            .whereField("userId", isEqualTo: userId)
+            .getDocuments()
+
+        return snapshot.documents.compactMap { parseMeasurementLog($0) }
+            .sorted { $0.date > $1.date }
+    }
+
+    func fetchLegacyMeasurements(userId: String) async throws -> [FPMeasurement] {
         let snapshot = try await db.collection("measurements")
             .whereField("userId", isEqualTo: userId)
-            .order(by: "date", descending: true)
             .getDocuments()
 
         return snapshot.documents.compactMap { doc in
             let data = doc.data()
             guard let date = (data["date"] as? Timestamp)?.dateValue() else { return nil }
+            let name = data["name"] as? String ?? ""
+            let catalog = MeasurementCatalog.findByName(name)
             return FPMeasurement(
                 id: doc.documentID,
-                name: data["name"] as? String ?? "",
-                unit: data["unit"] as? String ?? "",
+                typeId: catalog?.id,
+                name: catalog?.name ?? name,
+                unit: catalog?.displayUnit ?? Self.normalizeUnit(data["unit"] as? String),
                 value: data["value"] as? Double ?? 0,
                 date: date,
-                notes: data["notes"] as? String
+                notes: data["notes"] as? String,
+                source: "measurements"
             )
         }
     }
 
     func saveMeasurement(_ measurement: FPMeasurement, userId: String) async throws {
-        try await db.collection("measurements").document(measurement.id).setData([
+        guard let type = MeasurementCatalog.findById(measurement.typeId) ?? MeasurementCatalog.findByName(measurement.name) else {
+            throw FitProsError.syncFailed("Unknown measurement type: \(measurement.name)")
+        }
+
+        let now = Date()
+        let sessionId = measurement.sessionId ?? UUID().uuidString
+        try await db.collection("measurementLogs").document(measurement.id).setData([
             "userId": userId,
-            "name": measurement.name,
-            "unit": measurement.unit,
-            "value": measurement.value,
-            "date": Timestamp(date: measurement.date),
-            "notes": measurement.notes as Any
+            "dateCreated": Timestamp(date: measurement.date),
+            "lastUpdated": Timestamp(date: now),
+            "notes": measurement.notes ?? "",
+            "value": String(format: "%.2f", measurement.value),
+            "numericValue": measurement.value,
+            "sessionId": sessionId,
+            "measurement": measurementTypeDict(type)
         ])
+    }
+
+    private func parseMeasurementLog(_ doc: DocumentSnapshot) -> FPMeasurement? {
+        let data = doc.data() ?? [:]
+        guard let date = (data["dateCreated"] as? Timestamp)?.dateValue()
+            ?? (data["lastUpdated"] as? Timestamp)?.dateValue() else { return nil }
+
+        var value = data["numericValue"] as? Double ?? 0
+        if value == 0, let raw = data["value"] as? String {
+            value = Double(raw) ?? 0
+        }
+
+        var name = ""
+        var typeId: String?
+        var unit = ""
+
+        if let measurement = data["measurement"] as? [String: Any] {
+            typeId = measurement["id"] as? String
+            name = measurement["name"] as? String ?? ""
+            if let unitData = measurement["unitOfMeasurement"] as? [String: Any] {
+                unit = Self.normalizeUnit(unitData["abbreviation"] as? String)
+            }
+        }
+
+        let catalog = MeasurementCatalog.findById(typeId) ?? MeasurementCatalog.findByName(name)
+        if let catalog {
+            typeId = typeId ?? catalog.id
+            if name.isEmpty { name = catalog.name }
+            if unit.isEmpty { unit = catalog.displayUnit }
+        }
+
+        return FPMeasurement(
+            id: doc.documentID,
+            typeId: typeId,
+            name: name,
+            unit: unit,
+            value: value,
+            date: date,
+            notes: data["notes"] as? String,
+            sessionId: data["sessionId"] as? String,
+            source: "measurementLogs"
+        )
+    }
+
+    private func measurementTypeDict(_ type: FPMeasurementTypeDef) -> [String: Any] {
+        [
+            "id": type.id,
+            "name": type.name,
+            "color": type.color,
+            "unitOfMeasurement": [
+                "id": type.unitId,
+                "name": type.unitName,
+                "type": type.unitType,
+                "abbreviation": type.unitAbbreviation
+            ]
+        ]
+    }
+
+    private func mergeMeasurements(logs: [FPMeasurement], legacy: [FPMeasurement]) -> [FPMeasurement] {
+        var merged = logs
+        let keysWithLogs = Set(logs.map(\.matchKey))
+        for item in legacy where !keysWithLogs.contains(item.matchKey) {
+            merged.append(item)
+        }
+        return merged.sorted { $0.date > $1.date }
+    }
+
+    private static func normalizeUnit(_ unit: String?) -> String {
+        switch unit {
+        case "centimeter": return "cm"
+        case "inches": return "in"
+        default: return unit ?? ""
+        }
     }
 
     // MARK: - Content

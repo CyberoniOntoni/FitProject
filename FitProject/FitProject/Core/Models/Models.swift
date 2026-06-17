@@ -236,20 +236,82 @@ struct FPHabitLog: Identifiable, Codable, Equatable {
 
 // MARK: - Measurement
 
+struct FPMeasurementTypeDef: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let category: String
+    let color: String
+    let unitId: String
+    let unitName: String
+    let unitType: String
+    let unitAbbreviation: String
+
+    var displayUnit: String {
+        switch unitAbbreviation {
+        case "centimeter": return "cm"
+        case "inches": return "in"
+        default: return unitAbbreviation
+        }
+    }
+}
+
+enum MeasurementCatalog {
+    static let types: [FPMeasurementTypeDef] = [
+        .init(id: "DfqsrFQBGi04aHWAPA7I", name: "Bodyweight", category: "Body Composition", color: "#c93477", unitId: "kg", unitName: "Kilograms", unitType: "MASS", unitAbbreviation: "kg"),
+        .init(id: "body_fat_percentage", name: "Body Fat %", category: "Body Composition", color: "#FDCB6E", unitId: "%", unitName: "PERCENT", unitType: "PERCENT", unitAbbreviation: "%"),
+        .init(id: "muscle_mass", name: "Muscle Mass", category: "Body Composition", color: "#E17055", unitId: "kg", unitName: "MASS", unitType: "MASS", unitAbbreviation: "kg"),
+        .init(id: "body_water_percentage", name: "Body Water %", category: "Body Composition", color: "#06b6d4", unitId: "%", unitName: "PERCENT", unitType: "PERCENT", unitAbbreviation: "%"),
+        .init(id: "bone_mass", name: "Bone Mass", category: "Body Composition", color: "#94a3b8", unitId: "bone_mass_unit", unitName: "kg", unitType: "MASS", unitAbbreviation: "kg"),
+        .init(id: "vo2_max", name: "VO2 Max", category: "Body Composition", color: "#7c3aed", unitId: "vo2_max_unit", unitName: "ml/kg/min", unitType: "NUMERIC", unitAbbreviation: "ml/kg/min"),
+        .init(id: "visceral_fat", name: "Visceral Fat", category: "Body Composition", color: "#f97316", unitId: "level", unitName: "NUMERIC", unitType: "NUMERIC", unitAbbreviation: "level"),
+        .init(id: "waist", name: "Waist", category: "Circumference", color: "#4ECDC4", unitId: "cm", unitName: "CIRCUMFERENCE", unitType: "CIRCUMFERENCE", unitAbbreviation: "cm"),
+        .init(id: "chest", name: "Chest", category: "Circumference", color: "#10b981", unitId: "chest_unit", unitName: "Circumference", unitType: "CIRCUMFERENCE", unitAbbreviation: "cm"),
+        .init(id: "arms", name: "Arms", category: "Circumference", color: "#FFA07A", unitId: "inches", unitName: "CIRCUMFERENCE", unitType: "CIRCUMFERENCE", unitAbbreviation: "in"),
+        .init(id: "thighs", name: "Thighs", category: "Circumference", color: "#8b5cf6", unitId: "thighs_unit", unitName: "cm", unitType: "CIRCUMFERENCE", unitAbbreviation: "cm"),
+        .init(id: "hips", name: "Hips", category: "Circumference", color: "#45B7D1", unitId: "cm", unitName: "CIRCUMFERENCE", unitType: "CIRCUMFERENCE", unitAbbreviation: "cm"),
+        .init(id: "neck", name: "Neck", category: "Circumference", color: "#06b6d4", unitId: "neck_unit", unitName: "Circumference", unitType: "CIRCUMFERENCE", unitAbbreviation: "in"),
+        .init(id: "shoulders", name: "Shoulders", category: "Circumference", color: "#FD79A8", unitId: "inches", unitName: "CIRCUMFERENCE", unitType: "CIRCUMFERENCE", unitAbbreviation: "in"),
+        .init(id: "calves", name: "Calves", category: "Circumference", color: "#00B894", unitId: "cm", unitName: "CIRCUMFERENCE", unitType: "CIRCUMFERENCE", unitAbbreviation: "cm"),
+        .init(id: "forearms", name: "Forearms", category: "Circumference", color: "#74B9FF", unitId: "inches", unitName: "CIRCUMFERENCE", unitType: "CIRCUMFERENCE", unitAbbreviation: "in"),
+        .init(id: "wrist", name: "Wrist", category: "Circumference", color: "#a855f7", unitId: "wrist_unit", unitName: "cm", unitType: "CIRCUMFERENCE", unitAbbreviation: "cm"),
+        .init(id: "ankle", name: "Ankle", category: "Circumference", color: "#fbbf24", unitId: "cm", unitName: "CIRCUMFERENCE", unitType: "CIRCUMFERENCE", unitAbbreviation: "cm"),
+    ]
+
+    static let categories = ["Body Composition", "Circumference"]
+
+    static func findById(_ id: String?) -> FPMeasurementTypeDef? {
+        guard let id else { return nil }
+        return types.first { $0.id == id }
+    }
+
+    static func findByName(_ name: String) -> FPMeasurementTypeDef? {
+        if let exact = types.first(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
+            return exact
+        }
+        switch name.lowercased() {
+        case "weight", "body weight": return findById("DfqsrFQBGi04aHWAPA7I")
+        case "body fat", "bodyfat": return findById("body_fat_percentage")
+        default: return types.first { $0.name.localizedCaseInsensitiveContains(name) }
+        }
+    }
+
+    static func types(in category: String) -> [FPMeasurementTypeDef] {
+        types.filter { $0.category == category }
+    }
+}
+
 struct FPMeasurement: Identifiable, Codable, Equatable {
     let id: String
+    var typeId: String?
     var name: String
     var unit: String
     var value: Double
     var date: Date
     var notes: String?
-}
+    var sessionId: String?
+    var source: String = "measurementLogs"
 
-struct FPMeasurementType: Identifiable, Codable, Equatable {
-    let id: String
-    var name: String
-    var unit: String
-    var isDefault: Bool
+    var matchKey: String { typeId ?? name.lowercased() }
 }
 
 // MARK: - Content / Learn

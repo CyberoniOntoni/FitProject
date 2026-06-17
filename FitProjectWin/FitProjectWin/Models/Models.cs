@@ -211,11 +211,16 @@ public sealed class FPHabitLog
 public sealed class FPMeasurement
 {
     public string Id { get; set; } = "";
+    public string? TypeId { get; set; }
     public string Name { get; set; } = "";
     public string Unit { get; set; } = "";
     public double Value { get; set; }
     public DateTime Date { get; set; }
     public string? Notes { get; set; }
+    public string? SessionId { get; set; }
+    public string Source { get; set; } = "measurementLogs";
+
+    public string MatchKey => TypeId ?? Name.ToLowerInvariant();
 }
 
 public sealed class FPContent

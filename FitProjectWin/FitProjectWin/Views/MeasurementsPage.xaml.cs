@@ -7,24 +7,13 @@ namespace FitProjectWin.Views;
 
 public sealed partial class MeasurementsPage : Page
 {
-    public static readonly (string Name, string Unit, string Category)[] Types =
-    [
-        ("Weight", "kg", "Body Composition"),
-        ("Body Fat", "%", "Body Composition"),
-        ("Chest", "cm", "Circumference"),
-        ("Waist", "cm", "Circumference"),
-        ("Hips", "cm", "Circumference"),
-        ("Arms", "cm", "Circumference"),
-        ("Thighs", "cm", "Circumference")
-    ];
-
     public MainViewModel ViewModel { get; } = App.ViewModel;
 
     public MeasurementsPage()
     {
         InitializeComponent();
-        foreach (var (name, _, _) in Types)
-            TypeCombo.Items.Add(name);
+        foreach (var type in MeasurementCatalog.Types)
+            TypeCombo.Items.Add(type.Name);
         TypeCombo.SelectedIndex = 0;
         ViewModel.Data.DataChanged += Refresh;
         Refresh();
@@ -32,23 +21,25 @@ public sealed partial class MeasurementsPage : Page
 
     private void TypeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (TypeCombo.SelectedIndex >= 0 && TypeCombo.SelectedIndex < Types.Length)
-            UnitLabel.Text = $"Unit: {Types[TypeCombo.SelectedIndex].Unit}";
+        if (TypeCombo.SelectedIndex >= 0 && TypeCombo.SelectedIndex < MeasurementCatalog.Types.Length)
+            UnitLabel.Text = $"Unit: {MeasurementCatalog.Types[TypeCombo.SelectedIndex].DisplayUnit}";
     }
 
     private async void Save_Click(object sender, RoutedEventArgs e)
     {
         if (TypeCombo.SelectedIndex < 0 || ValueBox.Value <= 0) return;
 
-        var (name, unit, _) = Types[TypeCombo.SelectedIndex];
+        var type = MeasurementCatalog.Types[TypeCombo.SelectedIndex];
         var measurement = new FPMeasurement
         {
             Id = Guid.NewGuid().ToString(),
-            Name = name,
-            Unit = unit,
+            TypeId = type.Id,
+            Name = type.Name,
+            Unit = type.DisplayUnit,
             Value = ValueBox.Value,
             Date = DateTime.UtcNow,
-            Notes = string.IsNullOrWhiteSpace(NotesBox.Text) ? null : NotesBox.Text.Trim()
+            Notes = string.IsNullOrWhiteSpace(NotesBox.Text) ? null : NotesBox.Text.Trim(),
+            SessionId = Guid.NewGuid().ToString()
         };
 
         var btn = (Button)sender;
@@ -81,58 +72,63 @@ public sealed partial class MeasurementsPage : Page
         var col = 0;
         string? lastCategory = null;
 
-        foreach (var (name, unit, category) in Types)
+        foreach (var category in MeasurementCatalog.Categories)
         {
-            if (category != lastCategory)
+            foreach (var type in MeasurementCatalog.InCategory(category))
             {
-                if (col != 0)
+                if (category != lastCategory)
                 {
+                    if (col != 0)
+                    {
+                        row++;
+                        col = 0;
+                    }
+
+                    if (OverviewGrid.RowDefinitions.Count <= row)
+                        OverviewGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+                    var header = new TextBlock
+                    {
+                        Text = category.ToUpperInvariant(),
+                        FontSize = 11,
+                        FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                        Foreground = (Brush)Application.Current.Resources["AccentBrush"],
+                        CharacterSpacing = 120,
+                        Margin = new Thickness(0, row == 0 ? 0 : 8, 0, 4)
+                    };
+                    Grid.SetRow(header, row);
+                    Grid.SetColumnSpan(header, 2);
+                    OverviewGrid.Children.Add(header);
                     row++;
                     col = 0;
+                    lastCategory = category;
                 }
 
                 if (OverviewGrid.RowDefinitions.Count <= row)
                     OverviewGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-                var header = new TextBlock
+                var latest = LatestForType(measurements, type);
+                var hasValue = latest is not null;
+                var cell = BuildOverviewCell(type.Name, type.DisplayUnit, latest, hasValue, () => SelectType(type.Name));
+                OverviewGrid.Children.Add(cell);
+                Grid.SetRow(cell, row);
+                Grid.SetColumn(cell, col);
+
+                col++;
+                if (col >= 2)
                 {
-                    Text = category.ToUpperInvariant(),
-                    FontSize = 11,
-                    FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-                    Foreground = (Brush)Application.Current.Resources["AccentBrush"],
-                    CharacterSpacing = 120,
-                    Margin = new Thickness(0, row == 0 ? 0 : 8, 0, 4)
-                };
-                Grid.SetRow(header, row);
-                Grid.SetColumnSpan(header, 2);
-                OverviewGrid.Children.Add(header);
-                row++;
-                col = 0;
-                lastCategory = category;
-            }
-
-            if (OverviewGrid.RowDefinitions.Count <= row)
-                OverviewGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-            var latest = measurements
-                .Where(m => m.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
-                .OrderByDescending(m => m.Date)
-                .FirstOrDefault();
-
-            var hasValue = latest is not null;
-            var cell = BuildOverviewCell(name, unit, latest, hasValue, () => SelectType(name));
-            OverviewGrid.Children.Add(cell);
-            Grid.SetRow(cell, row);
-            Grid.SetColumn(cell, col);
-
-            col++;
-            if (col >= 2)
-            {
-                col = 0;
-                row++;
+                    col = 0;
+                    row++;
+                }
             }
         }
     }
+
+    private static FPMeasurement? LatestForType(List<FPMeasurement> measurements, MeasurementTypeDef type) =>
+        measurements
+            .Where(m => m.TypeId == type.Id || m.Name.Equals(type.Name, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(m => m.Date)
+            .FirstOrDefault();
 
     private static Button BuildOverviewCell(string name, string unit, FPMeasurement? latest, bool hasValue, Action onTap)
     {
@@ -142,7 +138,7 @@ public sealed partial class MeasurementsPage : Page
 
         var valueText = new TextBlock
         {
-            Text = hasValue ? $"{latest!.Value:0.#}" : "0",
+            Text = hasValue ? $"{latest!.Value:0.#}" : "—",
             FontSize = 26,
             FontWeight = Microsoft.UI.Text.FontWeights.Bold,
             Foreground = valueBrush
@@ -199,9 +195,9 @@ public sealed partial class MeasurementsPage : Page
 
     private void SelectType(string name)
     {
-        for (var i = 0; i < Types.Length; i++)
+        for (var i = 0; i < MeasurementCatalog.Types.Length; i++)
         {
-            if (Types[i].Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            if (MeasurementCatalog.Types[i].Name.Equals(name, StringComparison.OrdinalIgnoreCase))
             {
                 TypeCombo.SelectedIndex = i;
                 ValueBox.Focus(FocusState.Programmatic);
@@ -213,7 +209,7 @@ public sealed partial class MeasurementsPage : Page
     private void BuildHistory(List<FPMeasurement> measurements)
     {
         HistoryList.Children.Clear();
-        var recent = measurements.OrderByDescending(m => m.Date).Take(20).ToList();
+        var recent = measurements.OrderByDescending(m => m.Date).Take(30).ToList();
         EmptyHistory.Visibility = recent.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
         foreach (var m in recent)
@@ -261,7 +257,9 @@ public sealed partial class MeasurementsPage : Page
     private void BuildWeightTrend(List<FPMeasurement> measurements)
     {
         var weights = measurements
-            .Where(m => m.Name.Contains("Weight", StringComparison.OrdinalIgnoreCase))
+            .Where(m => m.TypeId == "DfqsrFQBGi04aHWAPA7I" ||
+                        m.Name.Contains("Bodyweight", StringComparison.OrdinalIgnoreCase) ||
+                        m.Name.Contains("Weight", StringComparison.OrdinalIgnoreCase))
             .OrderBy(m => m.Date)
             .TakeLast(10)
             .ToList();

@@ -49,7 +49,7 @@ public sealed class AppDataService
 
             var logs = await fs.FetchWorkoutLogsAsync(userId);
             var habits = await fs.FetchHabitsAsync(userId);
-            var measurements = await fs.FetchMeasurementsAsync(userId);
+            var measurements = await fs.FetchAllMeasurementsAsync(userId);
             var content = await fs.FetchContentAsync(userId);
             var records = await fs.FetchPersonalRecordsAsync(userId);
             var forms = await fs.FetchFormsAsync(userId);

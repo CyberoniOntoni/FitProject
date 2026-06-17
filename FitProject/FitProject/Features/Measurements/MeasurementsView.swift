@@ -1,38 +1,14 @@
 import SwiftUI
 
-struct MeasurementTypeInfo: Identifiable {
-    let id: String
-    let name: String
-    let unit: String
-    let category: String
-}
-
-enum MeasurementCatalog {
-    static let types: [MeasurementTypeInfo] = [
-        .init(id: "weight", name: "Weight", unit: "kg", category: "Body Composition"),
-        .init(id: "bodyfat", name: "Body Fat", unit: "%", category: "Body Composition"),
-        .init(id: "chest", name: "Chest", unit: "cm", category: "Circumference"),
-        .init(id: "waist", name: "Waist", unit: "cm", category: "Circumference"),
-        .init(id: "hips", name: "Hips", unit: "cm", category: "Circumference"),
-        .init(id: "arms", name: "Arms", unit: "cm", category: "Circumference"),
-        .init(id: "thighs", name: "Thighs", unit: "cm", category: "Circumference"),
-    ]
-
-    static var categories: [String] {
-        Array(Set(types.map(\.category))).sorted()
-    }
-
-    static func types(in category: String) -> [MeasurementTypeInfo] {
-        types.filter { $0.category == category }
-    }
-}
-
 struct MeasurementsView: View {
     @EnvironmentObject var appState: AppState
     @State private var showAddSheet = false
-    @State private var newName = "Weight"
+    @State private var selectedTypeId = MeasurementCatalog.types.first?.id ?? ""
     @State private var newValue = ""
-    @State private var newUnit = "kg"
+
+    private var selectedType: FPMeasurementTypeDef? {
+        MeasurementCatalog.findById(selectedTypeId)
+    }
 
     var body: some View {
         ScrollView {
@@ -68,7 +44,7 @@ struct MeasurementsView: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(BWSTheme.textPrimary)
 
-            Text("Tap a measurement to log a new entry.")
+            Text("Synced with FitPros.io — tap a measurement to log a new entry.")
                 .font(BWSTheme.captionFont)
                 .foregroundStyle(BWSTheme.textSecondary)
 
@@ -89,13 +65,12 @@ struct MeasurementsView: View {
         .padding(.top, 8)
     }
 
-    private func overviewCell(for type: MeasurementTypeInfo) -> some View {
-        let latest = latestMeasurement(named: type.name)
+    private func overviewCell(for type: FPMeasurementTypeDef) -> some View {
+        let latest = latestMeasurement(for: type)
         let hasValue = latest != nil
 
         return Button {
-            newName = type.name
-            newUnit = type.unit
+            selectedTypeId = type.id
             newValue = ""
             showAddSheet = true
         } label: {
@@ -105,10 +80,10 @@ struct MeasurementsView: View {
                     .foregroundStyle(BWSTheme.textPrimary)
 
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text(hasValue ? formatValue(latest!.value) : "0")
+                    Text(hasValue ? formatValue(latest!.value) : "—")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundStyle(hasValue ? BWSTheme.accent : BWSTheme.textTertiary)
-                    Text(type.unit)
+                    Text(type.displayUnit)
                         .font(BWSTheme.captionFont)
                         .foregroundStyle(hasValue ? BWSTheme.textSecondary : BWSTheme.textTertiary)
                 }
@@ -133,7 +108,7 @@ struct MeasurementsView: View {
 
     private var chartSection: some View {
         let weightLogs = appState.measurements
-            .filter { $0.name.lowercased().contains("weight") }
+            .filter { $0.typeId == "DfqsrFQBGi04aHWAPA7I" || $0.name.localizedCaseInsensitiveContains("bodyweight") || $0.name.localizedCaseInsensitiveContains("weight") }
             .sorted { $0.date < $1.date }
             .suffix(10)
 
@@ -141,7 +116,7 @@ struct MeasurementsView: View {
             if weightLogs.count >= 2 {
                 BWSCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Weight Trend")
+                        Text("Bodyweight Trend")
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(BWSTheme.textPrimary)
 
@@ -171,7 +146,7 @@ struct MeasurementsView: View {
     }
 
     private var historySection: some View {
-        let recent = appState.measurements.sorted { $0.date > $1.date }.prefix(20)
+        let recent = appState.measurements.sorted { $0.date > $1.date }.prefix(30)
 
         return VStack(alignment: .leading, spacing: 12) {
             Text("Recent History")
@@ -213,13 +188,17 @@ struct MeasurementsView: View {
     private var addMeasurementSheet: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                Picker("Type", selection: $newName) {
-                    ForEach(MeasurementCatalog.types) { type in
-                        Text(type.name).tag(type.name)
+                Picker("Type", selection: $selectedTypeId) {
+                    ForEach(MeasurementCatalog.categories, id: \.self) { category in
+                        Section(category) {
+                            ForEach(MeasurementCatalog.types(in: category)) { type in
+                                Text(type.name).tag(type.id)
+                            }
+                        }
                     }
                 }
                 .pickerStyle(.wheel)
-                .frame(height: 120)
+                .frame(height: 160)
 
                 TextField("Value", text: $newValue)
                     .keyboardType(.decimalPad)
@@ -229,9 +208,11 @@ struct MeasurementsView: View {
                     .background(BWSTheme.surface)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                Text("Unit: \(newUnit)")
-                    .font(BWSTheme.captionFont)
-                    .foregroundStyle(BWSTheme.textSecondary)
+                if let type = selectedType {
+                    Text("Unit: \(type.displayUnit)")
+                        .font(BWSTheme.captionFont)
+                        .foregroundStyle(BWSTheme.textSecondary)
+                }
 
                 BWSPrimaryButton(title: "Save Measurement") {
                     saveMeasurement()
@@ -250,16 +231,13 @@ struct MeasurementsView: View {
                         .foregroundStyle(BWSTheme.textSecondary)
                 }
             }
-            .onChange(of: newName) { _, name in
-                newUnit = MeasurementCatalog.types.first { $0.name == name }?.unit ?? "kg"
-            }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
     }
 
-    private func latestMeasurement(named name: String) -> FPMeasurement? {
+    private func latestMeasurement(for type: FPMeasurementTypeDef) -> FPMeasurement? {
         appState.measurements
-            .filter { $0.name.caseInsensitiveCompare(name) == .orderedSame }
+            .filter { $0.typeId == type.id || $0.name.caseInsensitiveCompare(type.name) == .orderedSame }
             .max(by: { $0.date < $1.date })
     }
 
@@ -271,14 +249,17 @@ struct MeasurementsView: View {
 
     private func saveMeasurement() {
         guard let value = Double(newValue),
-              let userId = appState.authService.currentUser?.id else { return }
+              let userId = appState.authService.currentUser?.id,
+              let type = selectedType else { return }
 
         let measurement = FPMeasurement(
             id: UUID().uuidString,
-            name: newName,
-            unit: newUnit,
+            typeId: type.id,
+            name: type.name,
+            unit: type.displayUnit,
             value: value,
-            date: Date()
+            date: Date(),
+            sessionId: UUID().uuidString
         )
 
         Task {

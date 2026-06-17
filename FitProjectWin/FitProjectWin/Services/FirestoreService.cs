@@ -250,7 +250,35 @@ public sealed class FirestoreService
         });
     }
 
-    public async Task<List<FPMeasurement>> FetchMeasurementsAsync(string userId)
+    public async Task<List<FPMeasurement>> FetchMeasurementLogsAsync(string userId)
+    {
+        var results = await RunQueryAsync(new
+        {
+            structuredQuery = new
+            {
+                from = new[] { new { collectionId = "measurementLogs" } },
+                where = new
+                {
+                    fieldFilter = new
+                    {
+                        field = new { fieldPath = "userId" },
+                        op = "EQUAL",
+                        value = new { stringValue = userId }
+                    }
+                },
+                limit = 200
+            }
+        });
+
+        return results
+            .Where(r => r.TryGetProperty("document", out _))
+            .Select(r => FirestoreParser.ParseMeasurementLog(r.GetProperty("document")))
+            .Where(m => m is not null)
+            .Select(m => m!)
+            .ToList();
+    }
+
+    public async Task<List<FPMeasurement>> FetchLegacyMeasurementsAsync(string userId)
     {
         var results = await RunQueryAsync(new
         {
@@ -266,7 +294,7 @@ public sealed class FirestoreService
                         value = new { stringValue = userId }
                     }
                 },
-                limit = 50
+                limit = 100
             }
         });
 
@@ -274,29 +302,43 @@ public sealed class FirestoreService
         {
             var doc = r.GetProperty("document");
             var fields = doc.GetProperty("fields");
+            var name = FirestoreParser.GetString(fields, "name") ?? "";
+            var catalog = MeasurementCatalog.FindByName(name);
             return new FPMeasurement
             {
                 Id = doc.GetProperty("name").GetString()!.Split('/').Last(),
-                Name = FirestoreParser.GetString(fields, "name") ?? "",
-                Unit = FirestoreParser.GetString(fields, "unit") ?? "",
+                TypeId = catalog?.Id,
+                Name = catalog?.Name ?? name,
+                Unit = catalog?.DisplayUnit ?? FirestoreParser.NormalizeUnit(FirestoreParser.GetString(fields, "unit")),
                 Value = FirestoreParser.GetDouble(fields, "value"),
                 Date = FirestoreParser.GetTimestamp(fields, "date") ?? DateTime.UtcNow,
-                Notes = FirestoreParser.GetString(fields, "notes")
+                Notes = FirestoreParser.GetString(fields, "notes"),
+                Source = "measurements"
             };
-        }).OrderByDescending(m => m.Date).ToList();
+        }).ToList();
+    }
+
+    public async Task<List<FPMeasurement>> FetchAllMeasurementsAsync(string userId)
+    {
+        var logs = await FetchMeasurementLogsAsync(userId);
+        var legacy = await FetchLegacyMeasurementsAsync(userId);
+        return FirestoreParser.MergeMeasurements(logs, legacy);
     }
 
     public async Task SaveMeasurementAsync(FPMeasurement m, string userId)
     {
-        await PatchDocumentAsync($"measurements/{m.Id}", new Dictionary<string, object?>
-        {
-            ["userId"] = userId,
-            ["name"] = m.Name,
-            ["unit"] = m.Unit,
-            ["value"] = m.Value,
-            ["date"] = m.Date,
-            ["notes"] = m.Notes
-        });
+        var type = MeasurementCatalog.FindById(m.TypeId) ?? MeasurementCatalog.FindByName(m.Name)
+            ?? throw new InvalidOperationException($"Unknown measurement type: {m.Name}");
+
+        m.TypeId = type.Id;
+        m.Name = type.Name;
+        m.Unit = type.DisplayUnit;
+        m.SessionId ??= Guid.NewGuid().ToString();
+
+        var url = $"{FirebaseConfig.FirestoreBaseUrl}/measurementLogs/{m.Id}";
+        var body = new { fields = FirestoreParser.FirestoreMeasurementLogFields(m, userId, type) };
+        var response = await _http.PatchAsJsonAsync(url, body);
+        response.EnsureSuccessStatusCode();
     }
 
     public async Task<List<FPContent>> FetchContentAsync(string userId)

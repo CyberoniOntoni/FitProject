@@ -48,7 +48,7 @@ final class SyncEngine: ObservableObject {
             async let creatorPrograms = firestore.fetchCreatorPrograms(userId: userId)
             async let workoutLogs = firestore.fetchWorkoutLogs(userId: userId)
             async let habits = firestore.fetchHabits(userId: userId)
-            async let measurements = firestore.fetchMeasurements(userId: userId)
+            async let measurements = firestore.fetchAllMeasurements(userId: userId)
             async let content = firestore.fetchContent(userId: userId)
             async let records = firestore.fetchPersonalRecords(userId: userId)
             async let forms = firestore.fetchForms(userId: userId)

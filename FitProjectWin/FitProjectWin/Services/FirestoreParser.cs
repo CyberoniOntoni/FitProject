@@ -235,6 +235,136 @@ internal static class FirestoreParser
         return fields;
     }
 
+    public static string NormalizeUnit(string? unit) => unit switch
+    {
+        "centimeter" => "cm",
+        "inches" => "in",
+        null or "" => "",
+        _ => unit
+    };
+
+    public static FPMeasurement? ParseMeasurementLog(JsonElement doc)
+    {
+        var fields = doc.GetProperty("fields");
+        var date = GetTimestamp(fields, "dateCreated") ?? GetTimestamp(fields, "lastUpdated");
+        if (date is null) return null;
+
+        var value = GetDouble(fields, "numericValue");
+        if (value == 0)
+        {
+            var raw = GetString(fields, "value");
+            if (raw is not null) double.TryParse(raw, out value);
+        }
+
+        string name = "";
+        string? typeId = null;
+        string unit = "";
+
+        if (fields.TryGetProperty("measurement", out var measurementField) &&
+            measurementField.TryGetProperty("mapValue", out var map) &&
+            map.TryGetProperty("fields", out var mf))
+        {
+            typeId = GetString(mf, "id");
+            name = GetString(mf, "name") ?? "";
+            if (mf.TryGetProperty("unitOfMeasurement", out var unitField) &&
+                unitField.TryGetProperty("mapValue", out var unitMap) &&
+                unitMap.TryGetProperty("fields", out var uf))
+            {
+                unit = NormalizeUnit(GetString(uf, "abbreviation"));
+            }
+        }
+
+        var catalog = MeasurementCatalog.FindById(typeId) ?? MeasurementCatalog.FindByName(name);
+        if (catalog is not null)
+        {
+            typeId ??= catalog.Id;
+            if (string.IsNullOrEmpty(name)) name = catalog.Name;
+            if (string.IsNullOrEmpty(unit)) unit = catalog.DisplayUnit;
+        }
+
+        return new FPMeasurement
+        {
+            Id = doc.GetProperty("name").GetString()!.Split('/').Last(),
+            TypeId = typeId,
+            Name = name,
+            Unit = unit,
+            Value = value,
+            Date = date.Value,
+            Notes = GetString(fields, "notes"),
+            SessionId = GetString(fields, "sessionId"),
+            Source = "measurementLogs"
+        };
+    }
+
+    public static object FirestoreMeasurementType(MeasurementTypeDef type) => new
+    {
+        mapValue = new
+        {
+            fields = new Dictionary<string, object>
+            {
+                ["id"] = FirestoreValue(type.Id),
+                ["name"] = FirestoreValue(type.Name),
+                ["color"] = FirestoreValue(type.Color),
+                ["unitOfMeasurement"] = new
+                {
+                    mapValue = new
+                    {
+                        fields = FirestoreFields(new Dictionary<string, object?>
+                        {
+                            ["id"] = type.UnitId,
+                            ["name"] = type.UnitName,
+                            ["type"] = type.UnitType,
+                            ["abbreviation"] = type.UnitAbbreviation
+                        })
+                    }
+                }
+            }
+        }
+    };
+
+    public static Dictionary<string, object> FirestoreMeasurementLogFields(FPMeasurement m, string userId, MeasurementTypeDef type)
+    {
+        var now = DateTime.UtcNow;
+        return FirestoreFields(new Dictionary<string, object?>
+        {
+            ["userId"] = userId,
+            ["dateCreated"] = m.Date == default ? now : m.Date.ToUniversalTime(),
+            ["lastUpdated"] = now,
+            ["notes"] = m.Notes ?? "",
+            ["value"] = m.Value.ToString("0.##"),
+            ["numericValue"] = m.Value,
+            ["sessionId"] = m.SessionId ?? Guid.NewGuid().ToString(),
+            ["measurement"] = FirestoreMeasurementType(type)
+        });
+    }
+
+    public static List<FPMeasurement> MergeMeasurements(IEnumerable<FPMeasurement> logs, IEnumerable<FPMeasurement> legacy)
+    {
+        var merged = logs.ToList();
+        var keysWithLogs = merged.Select(m => m.MatchKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in legacy)
+        {
+            var catalog = MeasurementCatalog.FindByName(item.Name);
+            var normalized = new FPMeasurement
+            {
+                Id = item.Id,
+                TypeId = catalog?.Id,
+                Name = catalog?.Name ?? item.Name,
+                Unit = catalog?.DisplayUnit ?? NormalizeUnit(item.Unit),
+                Value = item.Value,
+                Date = item.Date,
+                Notes = item.Notes,
+                Source = "measurements"
+            };
+
+            if (!keysWithLogs.Contains(normalized.MatchKey))
+                merged.Add(normalized);
+        }
+
+        return merged.OrderByDescending(m => m.Date).ToList();
+    }
+
     public static List<FPFormField> ParseFormFields(JsonElement fields)
     {
         if (!fields.TryGetProperty("fields", out var formFields) ||
