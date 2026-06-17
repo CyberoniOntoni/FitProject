@@ -10,10 +10,11 @@ public sealed record MeasurementTypeDef(
     string UnitType,
     string UnitAbbreviation)
 {
-    public string DisplayUnit => UnitAbbreviation switch
+    public string DisplayUnit => Category switch
     {
-        "centimeter" => "cm",
-        "inches" => "in",
+        "Circumference" => "cm",
+        "Body Composition" when UnitType is "MASS" => "kg",
+        "Body Composition" when UnitType is "PERCENT" => "%",
         _ => UnitAbbreviation
     };
 }
@@ -30,17 +31,17 @@ public static class MeasurementCatalog
         new("bone_mass", "Bone Mass", "Body Composition", "#94a3b8", "bone_mass_unit", "kg", "MASS", "kg"),
         new("vo2_max", "VO2 Max", "Body Composition", "#7c3aed", "vo2_max_unit", "ml/kg/min", "NUMERIC", "ml/kg/min"),
         new("visceral_fat", "Visceral Fat", "Body Composition", "#f97316", "level", "NUMERIC", "NUMERIC", "level"),
-        // Circumference
+        // Circumference — all stored/displayed in cm
         new("waist", "Waist", "Circumference", "#4ECDC4", "cm", "CIRCUMFERENCE", "CIRCUMFERENCE", "cm"),
-        new("chest", "Chest", "Circumference", "#10b981", "chest_unit", "Circumference", "CIRCUMFERENCE", "cm"),
-        new("arms", "Arms", "Circumference", "#FFA07A", "inches", "CIRCUMFERENCE", "CIRCUMFERENCE", "in"),
-        new("thighs", "Thighs", "Circumference", "#8b5cf6", "thighs_unit", "cm", "CIRCUMFERENCE", "cm"),
+        new("chest", "Chest", "Circumference", "#10b981", "cm", "Circumference", "CIRCUMFERENCE", "cm"),
+        new("arms", "Arms", "Circumference", "#FFA07A", "cm", "CIRCUMFERENCE", "CIRCUMFERENCE", "cm"),
+        new("thighs", "Thighs", "Circumference", "#8b5cf6", "cm", "CIRCUMFERENCE", "CIRCUMFERENCE", "cm"),
         new("hips", "Hips", "Circumference", "#45B7D1", "cm", "CIRCUMFERENCE", "CIRCUMFERENCE", "cm"),
-        new("neck", "Neck", "Circumference", "#06b6d4", "neck_unit", "Circumference", "CIRCUMFERENCE", "in"),
-        new("shoulders", "Shoulders", "Circumference", "#FD79A8", "inches", "CIRCUMFERENCE", "CIRCUMFERENCE", "in"),
+        new("neck", "Neck", "Circumference", "#06b6d4", "cm", "Circumference", "CIRCUMFERENCE", "cm"),
+        new("shoulders", "Shoulders", "Circumference", "#FD79A8", "cm", "CIRCUMFERENCE", "CIRCUMFERENCE", "cm"),
         new("calves", "Calves", "Circumference", "#00B894", "cm", "CIRCUMFERENCE", "CIRCUMFERENCE", "cm"),
-        new("forearms", "Forearms", "Circumference", "#74B9FF", "inches", "CIRCUMFERENCE", "CIRCUMFERENCE", "in"),
-        new("wrist", "Wrist", "Circumference", "#a855f7", "wrist_unit", "cm", "CIRCUMFERENCE", "cm"),
+        new("forearms", "Forearms", "Circumference", "#74B9FF", "cm", "CIRCUMFERENCE", "CIRCUMFERENCE", "cm"),
+        new("wrist", "Wrist", "Circumference", "#a855f7", "cm", "CIRCUMFERENCE", "CIRCUMFERENCE", "cm"),
         new("ankle", "Ankle", "Circumference", "#fbbf24", "cm", "CIRCUMFERENCE", "CIRCUMFERENCE", "cm"),
     ];
 

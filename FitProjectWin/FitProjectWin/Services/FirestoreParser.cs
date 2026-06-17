@@ -11,15 +11,23 @@ internal static class FirestoreParser
     public static int GetInt(JsonElement fields, string key) =>
         fields.TryGetProperty(key, out var f) && f.TryGetProperty("integerValue", out var v) && int.TryParse(v.GetString(), out var i) ? i : 0;
 
-    public static double GetDouble(JsonElement fields, string key) =>
-        fields.TryGetProperty(key, out var f) && f.TryGetProperty("doubleValue", out var v) ? v.GetDouble() : 0;
+    public static double GetDouble(JsonElement fields, string key)
+    {
+        if (!fields.TryGetProperty(key, out var f)) return 0;
+        if (f.TryGetProperty("doubleValue", out var d)) return d.GetDouble();
+        if (f.TryGetProperty("integerValue", out var i) && double.TryParse(i.GetString(), out var iv)) return iv;
+        return 0;
+    }
 
     public static bool GetBool(JsonElement fields, string key) =>
         fields.TryGetProperty(key, out var f) && f.TryGetProperty("booleanValue", out var v) && v.GetBoolean();
 
     public static DateTime? GetTimestamp(JsonElement fields, string key)
     {
-        var raw = GetString(fields, key);
+        if (!fields.TryGetProperty(key, out var f)) return null;
+        string? raw = null;
+        if (f.TryGetProperty("timestampValue", out var ts)) raw = ts.GetString();
+        else if (f.TryGetProperty("stringValue", out var s)) raw = s.GetString();
         return raw is null ? null : DateTime.Parse(raw.Replace("Z", "+00:00"));
     }
 
@@ -238,7 +246,7 @@ internal static class FirestoreParser
     public static string NormalizeUnit(string? unit) => unit switch
     {
         "centimeter" => "cm",
-        "inches" => "in",
+        "inches" or "in" or "inch" => "cm",
         null or "" => "",
         _ => unit
     };
@@ -250,11 +258,8 @@ internal static class FirestoreParser
         if (date is null) return null;
 
         var value = GetDouble(fields, "numericValue");
-        if (value == 0)
-        {
-            var raw = GetString(fields, "value");
-            if (raw is not null) double.TryParse(raw, out value);
-        }
+        if (value == 0 && GetString(fields, "value") is { } raw)
+            double.TryParse(raw, out value);
 
         string name = "";
         string? typeId = null;
@@ -279,7 +284,7 @@ internal static class FirestoreParser
         {
             typeId ??= catalog.Id;
             if (string.IsNullOrEmpty(name)) name = catalog.Name;
-            if (string.IsNullOrEmpty(unit)) unit = catalog.DisplayUnit;
+            unit = catalog.DisplayUnit;
         }
 
         return new FPMeasurement
@@ -325,7 +330,7 @@ internal static class FirestoreParser
     public static Dictionary<string, object> FirestoreMeasurementLogFields(FPMeasurement m, string userId, MeasurementTypeDef type)
     {
         var now = DateTime.UtcNow;
-        return FirestoreFields(new Dictionary<string, object?>
+        var fields = FirestoreFields(new Dictionary<string, object?>
         {
             ["userId"] = userId,
             ["dateCreated"] = m.Date == default ? now : m.Date.ToUniversalTime(),
@@ -334,8 +339,9 @@ internal static class FirestoreParser
             ["value"] = m.Value.ToString("0.##"),
             ["numericValue"] = m.Value,
             ["sessionId"] = m.SessionId ?? Guid.NewGuid().ToString(),
-            ["measurement"] = FirestoreMeasurementType(type)
         });
+        fields["measurement"] = FirestoreMeasurementType(type);
+        return fields;
     }
 
     public static List<FPMeasurement> MergeMeasurements(IEnumerable<FPMeasurement> logs, IEnumerable<FPMeasurement> legacy)

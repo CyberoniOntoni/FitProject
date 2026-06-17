@@ -290,7 +290,7 @@ final class FirestoreService {
         if let catalog {
             typeId = typeId ?? catalog.id
             if name.isEmpty { name = catalog.name }
-            if unit.isEmpty { unit = catalog.displayUnit }
+            unit = catalog.displayUnit
         }
 
         return FPMeasurement(
@@ -332,7 +332,7 @@ final class FirestoreService {
     private static func normalizeUnit(_ unit: String?) -> String {
         switch unit {
         case "centimeter": return "cm"
-        case "inches": return "in"
+        case "inches", "in", "inch": return "cm"
         default: return unit ?? ""
         }
     }
