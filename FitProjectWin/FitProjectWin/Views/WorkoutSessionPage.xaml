@@ -31,7 +31,40 @@
 
         <!-- Exercise content -->
         <ScrollViewer Grid.Row="2">
-            <StackPanel Spacing="16" x:Name="ExercisePanel" />
+            <StackPanel Spacing="16">
+                <Border x:Name="VideoSection" Visibility="Collapsed"
+                        CornerRadius="12" Background="Black"
+                        BorderBrush="#20FFFFFF" BorderThickness="1"
+                        Height="200">
+                    <Grid>
+                        <Grid x:Name="VideoPreviewLayer">
+                            <Image x:Name="VideoThumbnail"
+                                   Stretch="UniformToFill" />
+                            <Border Background="#66000000" />
+                            <Button x:Name="VideoPlayButton" Click="VideoPlay_Click"
+                                    Background="Transparent" BorderThickness="0"
+                                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                                <Border Width="64" Height="64" CornerRadius="32"
+                                        Background="#99000000" BorderBrush="#CCFFFFFF"
+                                        BorderThickness="2">
+                                    <FontIcon Glyph="&#xE768;" FontSize="28"
+                                              Foreground="White"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="4,0,0,0" />
+                                </Border>
+                            </Button>
+                        </Grid>
+                        <WebView2 x:Name="ExerciseVideoWebView" Visibility="Collapsed" />
+                        <ProgressRing x:Name="VideoLoadingRing" Width="40" Height="40"
+                                      Visibility="Collapsed" IsActive="False"
+                                      Foreground="{StaticResource AccentBrush}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+                <StackPanel Spacing="16" x:Name="ExercisePanel" />
+            </StackPanel>
         </ScrollViewer>
 
         <!-- Bottom nav -->

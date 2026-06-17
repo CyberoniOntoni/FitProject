@@ -71,9 +71,5 @@
         <Grid x:Name="WorkoutOverlay" Visibility="Collapsed" Background="#CC000000">
             <views:WorkoutSessionPage x:Name="WorkoutPage" />
         </Grid>
-
-        <Grid x:Name="VideoOverlay" Visibility="Collapsed" Background="#E6000000">
-            <views:VideoPlayerPage x:Name="VideoPage" MaxWidth="720" HorizontalAlignment="Center" />
-        </Grid>
     </Grid>
 </Window>

@@ -151,14 +151,6 @@ public partial class WorkoutSessionViewModel : ObservableObject, IDisposable
         IsCompleting = false;
     }
 
-    [RelayCommand]
-    private void OpenVideo()
-    {
-        var exercise = CurrentExercise;
-        if (exercise is not null && !string.IsNullOrEmpty(exercise.YoutubeId))
-            App.ViewModel.PlayExerciseVideo(exercise.YoutubeId, exercise.Name);
-    }
-
     private void StartRestTimer(int seconds)
     {
         _restTimer?.Dispose();

@@ -28,12 +28,6 @@ public sealed partial class MainWindow : Window
                 if (_vm.ShowWorkoutSession && _vm.WorkoutSession is not null)
                     WorkoutPage.Bind(_vm.WorkoutSession);
             }
-            if (e.PropertyName is nameof(MainViewModel.ShowVideoPlayer))
-            {
-                VideoOverlay.Visibility = _vm.ShowVideoPlayer ? Visibility.Visible : Visibility.Collapsed;
-                if (_vm.ShowVideoPlayer && !string.IsNullOrEmpty(_vm.VideoYoutubeId))
-                    VideoPage.Play(_vm.VideoYoutubeId, _vm.VideoTitle);
-            }
         };
 
         UpdateUI();

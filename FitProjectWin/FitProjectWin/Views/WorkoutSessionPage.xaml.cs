@@ -1,4 +1,5 @@
 using FitProjectWin.Models;
+using FitProjectWin.Services;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -11,6 +12,7 @@ public sealed partial class WorkoutSessionPage : Page
 {
     private WorkoutSessionViewModel? _vm;
     private readonly DispatcherQueue _dispatcher = DispatcherQueue.GetForCurrentThread();
+    private string? _displayedYoutubeId;
 
     public WorkoutSessionPage() => InitializeComponent();
 
@@ -40,6 +42,71 @@ public sealed partial class WorkoutSessionPage : Page
         RenderExercise();
     }
 
+    private void UpdateVideoSection(FPWorkoutExercise? exercise)
+    {
+        if (exercise is null || string.IsNullOrEmpty(exercise.YoutubeId) ||
+            string.IsNullOrEmpty(exercise.VideoThumbnailUrl))
+        {
+            StopVideoPlayback();
+            VideoSection.Visibility = Visibility.Collapsed;
+            _displayedYoutubeId = null;
+            return;
+        }
+
+        VideoSection.Visibility = Visibility.Visible;
+
+        if (_displayedYoutubeId == exercise.YoutubeId)
+            return;
+
+        StopVideoPlayback();
+        _displayedYoutubeId = exercise.YoutubeId;
+        VideoThumbnail.Source = new BitmapImage(new Uri(exercise.VideoThumbnailUrl));
+    }
+
+    private void ShowVideoPreview()
+    {
+        VideoPreviewLayer.Visibility = Visibility.Visible;
+        ExerciseVideoWebView.Visibility = Visibility.Collapsed;
+        VideoLoadingRing.Visibility = Visibility.Collapsed;
+        VideoLoadingRing.IsActive = false;
+    }
+
+    private void StopVideoPlayback()
+    {
+        YouTubeEmbedHelper.StopVideo(ExerciseVideoWebView);
+        ShowVideoPreview();
+    }
+
+    private async void VideoPlay_Click(object sender, RoutedEventArgs e)
+    {
+        var youtubeId = _vm?.CurrentExercise?.YoutubeId;
+        if (string.IsNullOrEmpty(youtubeId)) return;
+
+        VideoPreviewLayer.Visibility = Visibility.Collapsed;
+        ExerciseVideoWebView.Visibility = Visibility.Visible;
+        VideoLoadingRing.Visibility = Visibility.Visible;
+        VideoLoadingRing.IsActive = true;
+
+        void OnNavigationCompleted(object? _, Microsoft.Web.WebView2.Core.CoreWebView2NavigationCompletedEventArgs args)
+        {
+            ExerciseVideoWebView.NavigationCompleted -= OnNavigationCompleted;
+            VideoLoadingRing.Visibility = Visibility.Collapsed;
+            VideoLoadingRing.IsActive = false;
+        }
+
+        ExerciseVideoWebView.NavigationCompleted += OnNavigationCompleted;
+
+        try
+        {
+            await YouTubeEmbedHelper.LoadVideoAsync(ExerciseVideoWebView, youtubeId);
+        }
+        catch
+        {
+            ExerciseVideoWebView.NavigationCompleted -= OnNavigationCompleted;
+            ShowVideoPreview();
+        }
+    }
+
     private void RenderExercise()
     {
         if (_vm is null) return;
@@ -50,6 +117,8 @@ public sealed partial class WorkoutSessionPage : Page
         var exercise = _vm.CurrentExercise;
         if (exercise is null) return;
 
+        UpdateVideoSection(exercise);
+
         if (exercise.HeaderVisible && !string.IsNullOrEmpty(exercise.Header))
             ExercisePanel.Children.Add(new TextBlock
             {
@@ -58,28 +127,6 @@ public sealed partial class WorkoutSessionPage : Page
                 Foreground = (Brush)Application.Current.Resources["AccentBrush"],
                 CharacterSpacing = 150
             });
-
-        if (!string.IsNullOrEmpty(exercise.VideoThumbnailUrl))
-        {
-            var img = new Image
-            {
-                Height = 180,
-                Source = new BitmapImage(new Uri(exercise.VideoThumbnailUrl)),
-                Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill
-            };
-            ExercisePanel.Children.Add(img);
-
-            var watchBtn = new Button
-            {
-                Content = "▶  Watch instructional video",
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                Background = (Brush)Application.Current.Resources["AccentBrush"],
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                Margin = new Thickness(0, 0, 0, 4)
-            };
-            watchBtn.Click += (_, _) => _vm.OpenVideoCommand.Execute(null);
-            ExercisePanel.Children.Add(watchBtn);
-        }
 
         ExercisePanel.Children.Add(new TextBlock
         {
@@ -255,6 +302,8 @@ public sealed partial class WorkoutSessionPage : Page
 
     private void Close()
     {
+        StopVideoPlayback();
+        _displayedYoutubeId = null;
         _vm?.Dispose();
         App.ViewModel.ShowWorkoutSession = false;
     }

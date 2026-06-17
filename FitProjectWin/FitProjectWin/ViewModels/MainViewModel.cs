@@ -17,9 +17,6 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private bool _showWorkoutSession;
     [ObservableProperty] private WorkoutSessionViewModel? _workoutSession;
-    [ObservableProperty] private bool _showVideoPlayer;
-    [ObservableProperty] private string _videoYoutubeId = "";
-    [ObservableProperty] private string _videoTitle = "";
 
     public List<NavItem> NavItems { get; } =
     [
@@ -74,17 +71,6 @@ public partial class MainViewModel : ObservableObject
         WorkoutSession = new WorkoutSessionViewModel(Data, Auth, workout, program);
         ShowWorkoutSession = true;
     }
-
-    public void PlayExerciseVideo(string? youtubeId, string title)
-    {
-        if (string.IsNullOrWhiteSpace(youtubeId)) return;
-        VideoYoutubeId = youtubeId;
-        VideoTitle = title;
-        ShowVideoPlayer = true;
-    }
-
-    [RelayCommand]
-    private void CloseVideoPlayer() => ShowVideoPlayer = false;
 
     [RelayCommand]
     private async Task CloseWorkoutSessionAsync()
