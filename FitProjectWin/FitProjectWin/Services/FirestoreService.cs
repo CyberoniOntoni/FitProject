@@ -196,11 +196,162 @@ public sealed class FirestoreService
 
     public async Task<List<FPHabit>> FetchHabitsAsync(string userId)
     {
+        var habits = await FetchUserHabitsAsync(userId);
+        var logs = await FetchUserHabitLogsForDateAsync(userId, DateTime.Today);
+        return MergeHabitsWithLogs(habits, logs);
+    }
+
+    public async Task<List<FPHabit>> FetchUserHabitsAsync(string userId)
+    {
         var results = await RunQueryAsync(new
         {
             structuredQuery = new
             {
-                from = new[] { new { collectionId = "habits" } },
+                from = new[] { new { collectionId = "userHabits" } },
+                where = new
+                {
+                    compositeFilter = new
+                    {
+                        op = "AND",
+                        filters = new object[]
+                        {
+                            new
+                            {
+                                fieldFilter = new
+                                {
+                                    field = new { fieldPath = "client.id" },
+                                    op = "EQUAL",
+                                    value = new { stringValue = userId }
+                                }
+                            },
+                            new
+                            {
+                                fieldFilter = new
+                                {
+                                    field = new { fieldPath = "active" },
+                                    op = "EQUAL",
+                                    value = new { booleanValue = true }
+                                }
+                            }
+                        }
+                    }
+                },
+                limit = 50
+            }
+        });
+
+        return results
+            .Where(r => r.TryGetProperty("document", out _))
+            .Select(r => FirestoreParser.ParseUserHabit(r.GetProperty("document")))
+            .Where(h => h is not null)
+            .Select(h => h!)
+            .OrderBy(h => h.Index)
+            .ThenBy(h => h.Name)
+            .ToList();
+    }
+
+    public async Task<List<FPHabitLog>> FetchUserHabitLogsForDateAsync(string userId, DateTime date)
+    {
+        var start = date.Date;
+        var end = start.AddDays(1).AddTicks(-1);
+
+        var results = await RunQueryAsync(new
+        {
+            structuredQuery = new
+            {
+                from = new[] { new { collectionId = "userHabitLogs" } },
+                where = new
+                {
+                    compositeFilter = new
+                    {
+                        op = "AND",
+                        filters = new object[]
+                        {
+                            new
+                            {
+                                fieldFilter = new
+                                {
+                                    field = new { fieldPath = "userId" },
+                                    op = "EQUAL",
+                                    value = new { stringValue = userId }
+                                }
+                            },
+                            new
+                            {
+                                fieldFilter = new
+                                {
+                                    field = new { fieldPath = "date" },
+                                    op = "GREATER_THAN_OR_EQUAL",
+                                    value = new { timestampValue = start.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'") }
+                                }
+                            },
+                            new
+                            {
+                                fieldFilter = new
+                                {
+                                    field = new { fieldPath = "date" },
+                                    op = "LESS_THAN_OR_EQUAL",
+                                    value = new { timestampValue = end.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'") }
+                                }
+                            }
+                        }
+                    }
+                },
+                limit = 100
+            }
+        });
+
+        return results.Where(r => r.TryGetProperty("document", out _)).Select(r =>
+        {
+            var doc = r.GetProperty("document");
+            var fields = doc.GetProperty("fields");
+            return new FPHabitLog
+            {
+                Id = doc.GetProperty("name").GetString()!.Split('/').Last(),
+                UserHabitId = FirestoreParser.GetUserHabitIdFromLog(fields) ?? "",
+                UserId = FirestoreParser.GetString(fields, "userId") ?? userId,
+                Date = FirestoreParser.GetTimestamp(fields, "date") ?? start,
+                Value = FirestoreParser.GetDouble(fields, "value"),
+                TargetMet = FirestoreParser.GetBool(fields, "targetMet"),
+                DateCreated = FirestoreParser.GetTimestamp(fields, "dateCreated")
+            };
+        }).ToList();
+    }
+
+    public static List<FPHabit> MergeHabitsWithLogs(IEnumerable<FPHabit> habits, IEnumerable<FPHabitLog> logs)
+    {
+        var logByHabit = logs.ToDictionary(l => l.UserHabitId, l => l);
+        return habits.Select(habit =>
+        {
+            if (!logByHabit.TryGetValue(habit.Id, out var log)) return habit;
+            habit.CurrentValue = log.Value;
+            habit.TargetMet = log.TargetMet;
+            habit.LogDateCreated = log.DateCreated;
+            return habit;
+        }).ToList();
+    }
+
+    public async Task SaveUserHabitLogAsync(FPHabit habit, string userId, double value, DateTime? forDate = null)
+    {
+        var date = (forDate ?? DateTime.Today).Date;
+        var docId = $"{habit.Id}_{HabitSyncHelper.StartOfDayUnix(date)}";
+        var url = $"{FirebaseConfig.FirestoreBaseUrl}/userHabitLogs/{docId}";
+        var body = new
+        {
+            fields = FirestoreParser.FirestoreUserHabitLogFields(
+                habit, userId, value, date, habit.LogDateCreated)
+        };
+        var response = await _http.PatchAsJsonAsync(url, body);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<List<FPProgressPicture>> FetchProgressPicturesAsync(string userId)
+    {
+        var results = await RunQueryAsync(new
+        {
+            structuredQuery = new
+            {
+                from = new[] { new { collectionId = "progressPictures" } },
                 where = new
                 {
                     fieldFilter = new
@@ -210,45 +361,24 @@ public sealed class FirestoreService
                         value = new { stringValue = userId }
                     }
                 },
-                limit = 50
+                orderBy = new[]
+                {
+                    new { field = new { fieldPath = "dateCreated" }, direction = "DESCENDING" }
+                },
+                limit = 100
             }
         });
 
-        return results.Where(r => r.TryGetProperty("document", out var d)).Select(r =>
-        {
-            var doc = r.GetProperty("document");
-            var fields = doc.GetProperty("fields");
-            return new FPHabit
-            {
-                Id = doc.GetProperty("name").GetString()!.Split('/').Last(),
-                Name = FirestoreParser.GetString(fields, "name") ?? "",
-                Description = FirestoreParser.GetString(fields, "description"),
-                TargetValue = FirestoreParser.GetDouble(fields, "targetValue"),
-                Unit = FirestoreParser.GetString(fields, "unit") ?? "",
-                CurrentValue = FirestoreParser.GetDouble(fields, "currentValue"),
-                Streak = FirestoreParser.GetInt(fields, "streak")
-            };
-        }).ToList();
+        return results
+            .Where(r => r.TryGetProperty("document", out _))
+            .Select(r => FirestoreParser.ParseProgressPicture(r.GetProperty("document")))
+            .Where(p => p is not null)
+            .Select(p => p!)
+            .ToList();
     }
 
-    public async Task UpdateHabitValueAsync(string habitId, double value)
-    {
-        await PatchDocumentAsync($"habits/{habitId}", new Dictionary<string, object?>
-        {
-            ["currentValue"] = value
-        });
-    }
-
-    public async Task SaveHabitLogAsync(FPHabitLog log)
-    {
-        await PatchDocumentAsync($"habitLogs/{log.Id}", new Dictionary<string, object?>
-        {
-            ["habitId"] = log.HabitId,
-            ["userId"] = log.UserId,
-            ["date"] = log.Date,
-            ["value"] = log.Value
-        });
-    }
+    public List<FPProgressSession> GroupProgressSessions(IEnumerable<FPProgressPicture> pictures) =>
+        FirestoreParser.GroupProgressSessions(pictures);
 
     public async Task<List<FPMeasurement>> FetchMeasurementLogsAsync(string userId)
     {

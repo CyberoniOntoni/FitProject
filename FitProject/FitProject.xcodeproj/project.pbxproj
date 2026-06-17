@@ -32,6 +32,7 @@
 		A10000010000000000000025 /* FormFillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000024 /* FormFillView.swift */; };
 		A10000010000000000000026 /* FormsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000025 /* FormsListView.swift */; };
 		A10000010000000000000027 /* PersonalRecordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000026 /* PersonalRecordsView.swift */; };
+		A10000010000000000000028 /* ProgressPhotosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000027 /* ProgressPhotosView.swift */; };
 		A10000010000000000000021 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = A50000010000000000000001 /* FirebaseAuth */; };
 		A10000010000000000000022 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = A50000010000000000000002 /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
@@ -63,6 +64,7 @@
 		A20000010000000000000024 /* FormFillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormFillView.swift; sourceTree = "<group>"; };
 		A20000010000000000000025 /* FormsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormsListView.swift; sourceTree = "<group>"; };
 		A20000010000000000000026 /* PersonalRecordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalRecordsView.swift; sourceTree = "<group>"; };
+		A20000010000000000000027 /* ProgressPhotosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressPhotosView.swift; sourceTree = "<group>"; };
 		A30000010000000000000001 /* FitProject.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FitProject.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -132,6 +134,7 @@
 				A60000010000000000000017 /* Learn */,
 				A60000010000000000000018 /* Habits */,
 				A60000010000000000000019 /* Measurements */,
+				A60000010000000000000023 /* ProgressPhotos */,
 				A60000010000000000000020 /* Profile */,
 			);
 			path = Features;
@@ -252,6 +255,14 @@
 				A20000010000000000000018 /* MeasurementsView.swift */,
 			);
 			path = Measurements;
+			sourceTree = "<group>";
+		};
+		A60000010000000000000023 /* ProgressPhotos */ = {
+			isa = PBXGroup;
+			children = (
+				A20000010000000000000027 /* ProgressPhotosView.swift */,
+			);
+			path = ProgressPhotos;
 			sourceTree = "<group>";
 		};
 		A60000010000000000000020 /* Profile */ = {
@@ -380,6 +391,7 @@
 				A10000010000000000000025 /* FormFillView.swift in Sources */,
 				A10000010000000000000026 /* FormsListView.swift in Sources */,
 				A10000010000000000000027 /* PersonalRecordsView.swift in Sources */,
+				A10000010000000000000028 /* ProgressPhotosView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

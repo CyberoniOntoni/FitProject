@@ -22,7 +22,7 @@ public sealed partial class HabitsPage : Page
         HabitsList.Children.Clear();
         EmptyText.Visibility = habits.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
-        var completed = habits.Count(h => h.Progress >= 1);
+        var completed = habits.Count(h => h.IsComplete);
         SummaryText.Text = habits.Count == 0
             ? "No habits configured"
             : $"{completed} of {habits.Count} habits complete today";
@@ -49,9 +49,9 @@ public sealed partial class HabitsPage : Page
 
         var statusText = new TextBlock
         {
-            Text = habit.Progress >= 1 ? "✓ Complete" : habit.ProgressText,
+            Text = habit.IsComplete ? "✓ Complete" : habit.ProgressText,
             Style = (Style)Application.Current.Resources["CaptionStyle"],
-            Foreground = habit.Progress >= 1
+            Foreground = habit.IsComplete
                 ? (Brush)Application.Current.Resources["SuccessBrush"]
                 : (Brush)Application.Current.Resources["TextSecondaryBrush"]
         };
@@ -109,8 +109,8 @@ public sealed partial class HabitsPage : Page
         var targetBtn = CreateQuickButton("Hit target");
         targetBtn.Click += async (_, _) =>
         {
-            valueBox.Value = habit.TargetValue;
-            await ViewModel.Data.UpdateHabitAsync(habit.Id, habit.TargetValue);
+            valueBox.Value = habit.TargetType == "RANGE" ? habit.TargetMax : habit.TargetMin;
+            await ViewModel.Data.UpdateHabitAsync(habit.Id, valueBox.Value);
             Refresh();
         };
         Grid.SetColumn(targetBtn, 2);
@@ -151,17 +151,17 @@ public sealed partial class HabitsPage : Page
         Grid.SetColumn(title, 0);
         header.Children.Add(title);
 
-        if (habit.Streak > 0)
+        if (habit.IsComplete)
         {
-            var streak = new TextBlock
+            var complete = new TextBlock
             {
-                Text = $"🔥 {habit.Streak} day streak",
-                Foreground = (Brush)Application.Current.Resources["WarningBrush"],
+                Text = "On target",
+                Foreground = (Brush)Application.Current.Resources["SuccessBrush"],
                 FontSize = 12,
                 HorizontalAlignment = HorizontalAlignment.Right
             };
-            Grid.SetColumn(streak, 1);
-            header.Children.Add(streak);
+            Grid.SetColumn(complete, 1);
+            header.Children.Add(complete);
         }
         panel.Children.Add(header);
 

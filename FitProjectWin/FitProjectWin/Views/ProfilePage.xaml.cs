@@ -12,6 +12,9 @@ public sealed partial class ProfilePage : Page
     private void OpenHabits_Click(object sender, RoutedEventArgs e) =>
         App.NavigationService?.Navigate("Habits");
 
+    private void OpenProgressPhotos_Click(object sender, RoutedEventArgs e) =>
+        App.NavigationService?.Navigate("ProgressPhotos");
+
     private void OpenMeasurements_Click(object sender, RoutedEventArgs e) =>
         App.NavigationService?.Navigate("Measurements");
 

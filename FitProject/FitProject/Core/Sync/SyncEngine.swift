@@ -48,13 +48,14 @@ final class SyncEngine: ObservableObject {
             async let creatorPrograms = firestore.fetchCreatorPrograms(userId: userId)
             async let workoutLogs = firestore.fetchWorkoutLogs(userId: userId)
             async let habits = firestore.fetchHabits(userId: userId)
+            async let progressPictures = firestore.fetchProgressPictures(userId: userId)
             async let measurements = firestore.fetchAllMeasurements(userId: userId)
             async let content = firestore.fetchContent(userId: userId)
             async let records = firestore.fetchPersonalRecords(userId: userId)
             async let forms = firestore.fetchForms(userId: userId)
 
-            let (assigned, creator, logs, habitsResult, meas, cont, recs, formsResult) = try await (
-                assignedPrograms, creatorPrograms, workoutLogs, habits,
+            let (assigned, creator, logs, habitsResult, pictures, meas, cont, recs, formsResult) = try await (
+                assignedPrograms, creatorPrograms, workoutLogs, habits, progressPictures,
                 measurements, content, records, forms
             )
 
@@ -77,6 +78,7 @@ final class SyncEngine: ObservableObject {
             appState.assignedPrograms = assigned
             appState.workoutLogs = logs
             appState.habits = habitsResult
+            appState.progressSessions = FirestoreService.groupProgressSessions(pictures)
             appState.measurements = meas
             appState.content = cont
             appState.personalRecords = recs
@@ -92,15 +94,8 @@ final class SyncEngine: ObservableObject {
         try await firestore.saveWorkoutLog(log)
     }
 
-    func pushHabitUpdate(habitId: String, userId: String, value: Double) async throws {
-        try await firestore.updateHabitValue(habitId: habitId, value: value)
-        try await firestore.saveHabitLog(FPHabitLog(
-            id: UUID().uuidString,
-            habitId: habitId,
-            userId: userId,
-            date: Date(),
-            value: value
-        ))
+    func pushHabitUpdate(habit: FPHabit, userId: String, value: Double) async throws {
+        try await firestore.saveUserHabitLog(habit, userId: userId, value: value)
     }
 
     func pushMeasurement(_ measurement: FPMeasurement, userId: String) async throws {

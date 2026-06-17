@@ -168,41 +168,103 @@ final class FirestoreService {
     // MARK: - Habits
 
     func fetchHabits(userId: String) async throws -> [FPHabit] {
-        let snapshot = try await db.collection("habits")
-            .whereField("userId", isEqualTo: userId)
+        let habits = try await fetchUserHabits(userId: userId)
+        let logs = try await fetchUserHabitLogsForDate(userId: userId, date: Date())
+        return Self.mergeHabitsWithLogs(habits: habits, logs: logs)
+    }
+
+    func fetchUserHabits(userId: String) async throws -> [FPHabit] {
+        let snapshot = try await db.collection("userHabits")
+            .whereField("client.id", isEqualTo: userId)
+            .whereField("active", isEqualTo: true)
             .getDocuments()
 
-        return snapshot.documents.compactMap { doc in
-            let data = doc.data()
-            return FPHabit(
-                id: doc.documentID,
-                name: data["name"] as? String ?? "",
-                description: data["description"] as? String,
-                targetValue: data["targetValue"] as? Double ?? 0,
-                unit: data["unit"] as? String ?? "",
-                icon: data["icon"] as? String,
-                color: data["color"] as? String,
-                currentValue: data["currentValue"] as? Double ?? 0,
-                streak: data["streak"] as? Int ?? 0
-            )
+        return snapshot.documents.compactMap { parseUserHabit($0) }
+            .sorted { lhs, rhs in
+                if lhs.index != rhs.index { return lhs.index < rhs.index }
+                return lhs.name < rhs.name
+            }
+    }
+
+    func fetchUserHabitLogsForDate(userId: String, date: Date) async throws -> [FPHabitLog] {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        guard let end = calendar.date(byAdding: .day, value: 1, to: start)?.addingTimeInterval(-1) else {
+            return []
+        }
+
+        let snapshot = try await db.collection("userHabitLogs")
+            .whereField("userId", isEqualTo: userId)
+            .whereField("date", isGreaterThanOrEqualTo: Timestamp(date: start))
+            .whereField("date", isLessThanOrEqualTo: Timestamp(date: end))
+            .getDocuments()
+
+        return snapshot.documents.compactMap { parseUserHabitLog($0) }
+    }
+
+    static func mergeHabitsWithLogs(habits: [FPHabit], logs: [FPHabitLog]) -> [FPHabit] {
+        let logByHabit = Dictionary(uniqueKeysWithValues: logs.map { ($0.userHabitId, $0) })
+        return habits.map { habit in
+            var updated = habit
+            if let log = logByHabit[habit.id] {
+                updated.currentValue = log.value
+                updated.targetMet = log.targetMet
+                updated.logDateCreated = log.dateCreated
+            }
+            return updated
         }
     }
 
-    func saveHabitLog(_ log: FPHabitLog) async throws {
-        let ref = db.collection("habitLogs").document(log.id)
-        try await ref.setData([
-            "habitId": log.habitId,
-            "userId": log.userId,
-            "date": Timestamp(date: log.date),
-            "value": log.value
-        ])
+    func saveUserHabitLog(_ habit: FPHabit, userId: String, value: Double, forDate: Date = Date()) async throws {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: forDate)
+        let docId = "\(habit.id)_\(HabitSyncHelper.startOfDayUnix(for: forDate))"
+        let targetMet = HabitSyncHelper.isTargetMet(
+            type: habit.targetType, min: habit.targetMin, max: habit.targetMax, value: value
+        )
+        let now = Timestamp(date: Date())
+
+        var data: [String: Any] = [
+            "userId": userId,
+            "date": Timestamp(date: startOfDay),
+            "lastUpdated": now,
+            "value": value,
+            "targetMet": targetMet,
+            "userHabit": embeddedUserHabitDict(habit)
+        ]
+        data["dateCreated"] = habit.logDateCreated.map { Timestamp(date: $0) } ?? now
+
+        try await db.collection("userHabitLogs").document(docId).setData(data, merge: true)
     }
 
-    func updateHabitValue(habitId: String, value: Double) async throws {
-        try await db.collection("habits").document(habitId).updateData([
-            "currentValue": value,
-            "lastUpdated": FieldValue.serverTimestamp()
-        ])
+    // MARK: - Progress Pictures
+
+    func fetchProgressPictures(userId: String) async throws -> [FPProgressPicture] {
+        let snapshot = try await db.collection("progressPictures")
+            .whereField("userId", isEqualTo: userId)
+            .order(by: "dateCreated", descending: true)
+            .limit(to: 100)
+            .getDocuments()
+
+        return snapshot.documents.compactMap { parseProgressPicture($0) }
+    }
+
+    static func groupProgressSessions(_ pictures: [FPProgressPicture]) -> [FPProgressSession] {
+        let poseOrder = ["front": 0, "side": 1, "back": 2]
+        let grouped = Dictionary(grouping: pictures, by: \.sessionId)
+
+        return grouped.map { sessionId, items in
+            let sorted = items.sorted {
+                (poseOrder[$0.poseType] ?? 99) < (poseOrder[$1.poseType] ?? 99)
+            }
+            return FPProgressSession(
+                sessionId: sessionId,
+                dateCreated: sorted[0].dateCreated,
+                pictures: sorted,
+                notes: sorted.compactMap(\.notes).first(where: { !$0.isEmpty })
+            )
+        }
+        .sorted { $0.dateCreated > $1.dateCreated }
     }
 
     // MARK: - Measurements
@@ -437,24 +499,15 @@ final class FirestoreService {
     }
 
     func listenToHabits(userId: String, onChange: @escaping ([FPHabit]) -> Void) -> ListenerRegistration {
-        db.collection("habits")
-            .whereField("userId", isEqualTo: userId)
-            .addSnapshotListener { snapshot, _ in
-                let habits = snapshot?.documents.compactMap { doc -> FPHabit? in
-                    let data = doc.data()
-                    return FPHabit(
-                        id: doc.documentID,
-                        name: data["name"] as? String ?? "",
-                        description: data["description"] as? String,
-                        targetValue: data["targetValue"] as? Double ?? 0,
-                        unit: data["unit"] as? String ?? "",
-                        icon: data["icon"] as? String,
-                        color: data["color"] as? String,
-                        currentValue: data["currentValue"] as? Double ?? 0,
-                        streak: data["streak"] as? Int ?? 0
-                    )
-                } ?? []
-                onChange(habits)
+        db.collection("userHabits")
+            .whereField("client.id", isEqualTo: userId)
+            .whereField("active", isEqualTo: true)
+            .addSnapshotListener { [weak self] _, _ in
+                guard let self else { return }
+                Task {
+                    let habits = (try? await self.fetchHabits(userId: userId)) ?? []
+                    onChange(habits)
+                }
             }
     }
 
@@ -653,6 +706,101 @@ final class FirestoreService {
                 ] as [String: Any]
             }
         ]
+    }
+
+    private func parseUserHabit(_ doc: DocumentSnapshot) -> FPHabit? {
+        guard let data = doc.data() else { return nil }
+        let (values, unit, frequency, explicitType) = parseHabitTarget(from: data["target"] as? [String: Any])
+        guard let first = values.first else { return nil }
+
+        let targetType = HabitSyncHelper.targetType(from: values, explicit: explicitType)
+        let targetMax = values.count > 1 ? values[1] : first
+        let iconData = data["icon"] as? [String: Any]
+
+        return FPHabit(
+            id: doc.documentID,
+            habitId: data["habitId"] as? String ?? doc.documentID.split(separator: "_").first.map(String.init) ?? doc.documentID,
+            name: data["name"] as? String ?? "",
+            description: data["description"] as? String,
+            unit: unit,
+            frequency: frequency,
+            targetType: targetType,
+            targetMin: first,
+            targetMax: targetMax,
+            icon: iconData?["mobileIcon"] as? String ?? iconData?["name"] as? String,
+            color: data["color"] as? String,
+            index: data["index"] as? Int ?? 0,
+            coachId: (data["coach"] as? [String: Any])?["id"] as? String
+                ?? (data["client"] as? [String: Any])?["id"] as? String ?? ""
+        )
+    }
+
+    private func parseUserHabitLog(_ doc: DocumentSnapshot) -> FPHabitLog? {
+        guard let data = doc.data() else { return nil }
+        let userHabit = data["userHabit"] as? [String: Any]
+        let userHabitId = userHabit?["id"] as? String ?? ""
+
+        return FPHabitLog(
+            id: doc.documentID,
+            userHabitId: userHabitId,
+            userId: data["userId"] as? String ?? "",
+            date: (data["date"] as? Timestamp)?.dateValue() ?? Date(),
+            value: Self.numericValue(from: data["value"]),
+            targetMet: data["targetMet"] as? Bool ?? false,
+            dateCreated: (data["dateCreated"] as? Timestamp)?.dateValue()
+        )
+    }
+
+    private func parseProgressPicture(_ doc: DocumentSnapshot) -> FPProgressPicture? {
+        guard let data = doc.data(),
+              let dateCreated = (data["dateCreated"] as? Timestamp)?.dateValue(),
+              let imageUrl = data["imageUrl"] as? String else { return nil }
+
+        return FPProgressPicture(
+            id: doc.documentID,
+            userId: data["userId"] as? String ?? "",
+            sessionId: data["sessionId"] as? String ?? doc.documentID,
+            poseType: data["poseType"] as? String ?? "front",
+            imageUrl: imageUrl,
+            dateCreated: dateCreated,
+            notes: data["notes"] as? String
+        )
+    }
+
+    private func parseHabitTarget(from target: [String: Any]?) -> ([Double], String, String, String?) {
+        guard let target else { return ([], "", "Per Day", nil) }
+        let rawValues = target["value"] as? [Any] ?? []
+        let values = rawValues.compactMap { Self.numericValue(from: $0) }
+        let unit = target["unit"] as? String ?? ""
+        let frequency = target["frequency"] as? String ?? "Per Day"
+        let explicitType = target["targetType"] as? String
+        return (values, unit, frequency, explicitType)
+    }
+
+    private func embeddedUserHabitDict(_ habit: FPHabit) -> [String: Any] {
+        let values: [Double] = habit.targetType == "RANGE"
+            ? [habit.targetMin, habit.targetMax]
+            : [habit.targetMin]
+
+        return [
+            "id": habit.id,
+            "coach": ["id": habit.coachId],
+            "target": [
+                "unit": habit.unit,
+                "frequency": habit.frequency,
+                "value": values
+            ]
+        ]
+    }
+
+    private static func numericValue(from value: Any?) -> Double {
+        switch value {
+        case let number as Double: return number
+        case let number as Int: return Double(number)
+        case let number as NSNumber: return number.doubleValue
+        case let string as String: return Double(string) ?? 0
+        default: return 0
+        }
     }
 
     private func exerciseToDict(_ exercise: FPLoggedExercise) -> [String: Any] {

@@ -201,37 +201,119 @@ struct FPLoggedSet: Identifiable, Codable, Equatable {
 
 struct FPHabit: Identifiable, Codable, Equatable {
     let id: String
+    var habitId: String
     var name: String
     var description: String?
-    var targetValue: Double
     var unit: String
+    var frequency: String = "Per Day"
+    var targetType: String = "FLOOR"
+    var targetMin: Double
+    var targetMax: Double
     var icon: String?
     var color: String?
+    var index: Int = 0
+    var coachId: String = ""
     var currentValue: Double = 0
-    var streak: Int = 0
+    var targetMet: Bool = false
+    var logDateCreated: Date?
+
+    var targetValue: Double { targetType == "RANGE" ? targetMax : targetMin }
+
+    var isComplete: Bool {
+        HabitSyncHelper.isTargetMet(type: targetType, min: targetMin, max: targetMax, value: currentValue)
+    }
 
     var progress: Double {
-        guard targetValue > 0 else { return 0 }
-        return min(currentValue / targetValue, 1.0)
+        HabitSyncHelper.progress(type: targetType, min: targetMin, max: targetMax, value: currentValue)
     }
 
     var progressText: String {
-        let current = currentValue.truncatingRemainder(dividingBy: 1) == 0
-            ? String(format: "%.0f", currentValue)
-            : String(format: "%.1f", currentValue)
-        let target = targetValue.truncatingRemainder(dividingBy: 1) == 0
-            ? String(format: "%.0f", targetValue)
-            : String(format: "%.1f", targetValue)
-        return "\(current) / \(target)\(unit.isEmpty ? "" : " \(unit)")"
+        HabitSyncHelper.progressText(type: targetType, min: targetMin, max: targetMax, value: currentValue, unit: unit)
     }
 }
 
 struct FPHabitLog: Identifiable, Codable, Equatable {
     let id: String
-    var habitId: String
+    var userHabitId: String
     var userId: String
     var date: Date
     var value: Double
+    var targetMet: Bool = false
+    var dateCreated: Date?
+}
+
+enum HabitSyncHelper {
+    static func targetType(from values: [Double], explicit: String? = nil) -> String {
+        if let explicit, !explicit.isEmpty { return explicit }
+        return values.count >= 2 ? "RANGE" : "FLOOR"
+    }
+
+    static func isTargetMet(type: String, min: Double, max: Double, value: Double) -> Bool {
+        switch type {
+        case "CEILING": return value <= min
+        case "RANGE": return value >= min && value <= max
+        default: return value >= min
+        }
+    }
+
+    static func progress(type: String, min: Double, max: Double, value: Double) -> Double {
+        if isTargetMet(type: type, min: min, max: max, value: value) { return 1 }
+        switch type {
+        case "CEILING":
+            return min > 0 ? min(value / min, 1) : 0
+        case "RANGE" where value < min:
+            return min > 0 ? value / min : 0
+        case "RANGE" where value > max:
+            return value > 0 ? max / value : 0
+        default:
+            return min > 0 ? min(value / min, 1) : 0
+        }
+    }
+
+    static func progressText(type: String, min: Double, max: Double, value: Double, unit: String) -> String {
+        let suffix = unit.isEmpty ? "" : " \(unit)"
+        let current = value.truncatingRemainder(dividingBy: 1) == 0
+            ? String(format: "%.0f", value)
+            : String(format: "%.1f", value)
+        let target: String
+        if type == "RANGE" {
+            target = "\(formatNumber(min))-\(formatNumber(max))"
+        } else {
+            target = formatNumber(min)
+        }
+        return "\(current) / \(target)\(suffix)"
+    }
+
+    static func startOfDayUnix(for date: Date = Date()) -> Int {
+        let start = Calendar.current.startOfDay(for: date)
+        return Int(start.timeIntervalSince1970)
+    }
+
+    private static func formatNumber(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0
+            ? String(format: "%.0f", value)
+            : String(format: "%.1f", value)
+    }
+}
+
+// MARK: - Progress Pictures
+
+struct FPProgressPicture: Identifiable, Codable, Equatable {
+    let id: String
+    var userId: String
+    var sessionId: String
+    var poseType: String
+    var imageUrl: String
+    var dateCreated: Date
+    var notes: String?
+}
+
+struct FPProgressSession: Identifiable, Codable, Equatable {
+    var id: String { sessionId }
+    var sessionId: String
+    var dateCreated: Date
+    var pictures: [FPProgressPicture]
+    var notes: String?
 }
 
 // MARK: - Measurement

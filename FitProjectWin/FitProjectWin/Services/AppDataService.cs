@@ -10,6 +10,7 @@ public sealed class AppDataService
     public Dictionary<string, List<FPProgramWeek>> ProgramWeeks { get; private set; } = new();
     public List<FPWorkoutLog> WorkoutLogs { get; private set; } = [];
     public List<FPHabit> Habits { get; private set; } = [];
+    public List<FPProgressSession> ProgressSessions { get; private set; } = [];
     public List<FPMeasurement> Measurements { get; private set; } = [];
     public List<FPContent> Content { get; private set; } = [];
     public List<FPPersonalRecord> PersonalRecords { get; private set; } = [];
@@ -49,6 +50,7 @@ public sealed class AppDataService
 
             var logs = await fs.FetchWorkoutLogsAsync(userId);
             var habits = await fs.FetchHabitsAsync(userId);
+            var progressPictures = await fs.FetchProgressPicturesAsync(userId);
             var measurements = await fs.FetchAllMeasurementsAsync(userId);
             var content = await fs.FetchContentAsync(userId);
             var records = await fs.FetchPersonalRecordsAsync(userId);
@@ -62,6 +64,7 @@ public sealed class AppDataService
             ProgramWeeks = weeks;
             WorkoutLogs = logs;
             Habits = habits;
+            ProgressSessions = fs.GroupProgressSessions(progressPictures);
             Measurements = measurements;
             Content = content;
             PersonalRecords = records;
@@ -237,18 +240,14 @@ public sealed class AppDataService
     public async Task UpdateHabitAsync(string habitId, double value)
     {
         if (_auth.IdToken is null || _auth.CurrentUser is null) return;
-        var fs = new FirestoreService(_auth.IdToken);
-        await fs.UpdateHabitValueAsync(habitId, value);
-        await fs.SaveHabitLogAsync(new FPHabitLog
-        {
-            Id = Guid.NewGuid().ToString(),
-            HabitId = habitId,
-            UserId = _auth.CurrentUser.Id,
-            Date = DateTime.UtcNow,
-            Value = value
-        });
         var habit = Habits.FirstOrDefault(h => h.Id == habitId);
-        if (habit is not null) habit.CurrentValue = value;
+        if (habit is null) return;
+
+        var fs = new FirestoreService(_auth.IdToken);
+        await fs.SaveUserHabitLogAsync(habit, _auth.CurrentUser.Id, value);
+        habit.CurrentValue = value;
+        habit.TargetMet = HabitSyncHelper.IsTargetMet(habit.TargetType, habit.TargetMin, habit.TargetMax, value);
+        habit.LogDateCreated ??= DateTime.UtcNow;
         DataChanged?.Invoke();
     }
 
@@ -287,6 +286,7 @@ public sealed class AppDataService
         ProgramWeeks = new();
         WorkoutLogs = [];
         Habits = [];
+        ProgressSessions = [];
         Measurements = [];
         Content = [];
         PersonalRecords = [];

@@ -62,6 +62,34 @@
             </Border>
 
             <Border Style="{StaticResource CardBorderStyle}" Padding="0">
+                <Button Click="OpenProgressPhotos_Click" HorizontalAlignment="Stretch"
+                        Background="Transparent" BorderThickness="0" Padding="16">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon Grid.Column="0" Glyph="&#xE722;" FontSize="18"
+                                  Foreground="{StaticResource AccentBrush}"
+                                  VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                            <TextBlock Text="Progress Photos" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Style="{StaticResource CaptionStyle}">
+                                <Run Text="Visual body transformation · " />
+                                <Run Text="{x:Bind ViewModel.Data.ProgressSessions.Count, Mode=OneWay}" />
+                                <Run Text=" sessions" />
+                            </TextBlock>
+                        </StackPanel>
+                        <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="14"
+                                  Foreground="{StaticResource TextTertiaryBrush}"
+                                  VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+            </Border>
+
+            <Border Style="{StaticResource CardBorderStyle}" Padding="0">
                 <Button Click="OpenMeasurements_Click" HorizontalAlignment="Stretch"
                         Background="Transparent" BorderThickness="0" Padding="16">
                     <Grid ColumnSpacing="12">

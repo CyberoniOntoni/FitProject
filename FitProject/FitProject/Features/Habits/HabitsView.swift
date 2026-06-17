@@ -14,9 +14,15 @@ struct HabitsView: View {
                         HabitDetailCard(habit: habit) { newValue in
                             Task {
                                 guard let userId = appState.authService.currentUser?.id else { return }
-                                try? await appState.syncEngine.pushHabitUpdate(habitId: habit.id, userId: userId, value: newValue)
+                                try? await appState.syncEngine.pushHabitUpdate(habit: habit, userId: userId, value: newValue)
                                 if let idx = appState.habits.firstIndex(where: { $0.id == habit.id }) {
                                     appState.habits[idx].currentValue = newValue
+                                    appState.habits[idx].targetMet = HabitSyncHelper.isTargetMet(
+                                        type: habit.targetType,
+                                        min: habit.targetMin,
+                                        max: habit.targetMax,
+                                        value: newValue
+                                    )
                                 }
                             }
                         }
@@ -55,7 +61,7 @@ struct HabitsView: View {
                     Text("Today's Progress")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(BWSTheme.textPrimary)
-                    let completed = appState.habits.filter { $0.progress >= 1 }.count
+                    let completed = appState.habits.filter(\.isComplete).count
                     Text("\(completed) of \(appState.habits.count) habits complete")
                         .font(BWSTheme.captionFont)
                         .foregroundStyle(BWSTheme.textSecondary)
@@ -63,7 +69,7 @@ struct HabitsView: View {
                 Spacer()
                 ProgressRing(
                     progress: appState.habits.isEmpty ? 0 :
-                        Double(appState.habits.filter { $0.progress >= 1 }.count) / Double(appState.habits.count)
+                        Double(appState.habits.filter(\.isComplete).count) / Double(appState.habits.count)
                 )
             }
         }
@@ -83,14 +89,10 @@ struct HabitDetailCard: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(BWSTheme.textPrimary)
                     Spacer()
-                    if habit.streak > 0 {
-                        HStack(spacing: 4) {
-                            Image(systemName: "flame.fill")
-                                .foregroundStyle(BWSTheme.warning)
-                            Text("\(habit.streak) day streak")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(BWSTheme.warning)
-                        }
+                    if habit.isComplete {
+                        Text("On target")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(BWSTheme.success)
                     }
                 }
 
@@ -111,9 +113,9 @@ struct HabitDetailCard: View {
                 }
                 .frame(height: 6)
 
-                Text(habit.progress >= 1 ? "✓ Complete" : habit.progressText)
+                Text(habit.isComplete ? "✓ Complete" : habit.progressText)
                     .font(BWSTheme.captionFont)
-                    .foregroundStyle(habit.progress >= 1 ? BWSTheme.success : BWSTheme.textSecondary)
+                    .foregroundStyle(habit.isComplete ? BWSTheme.success : BWSTheme.textSecondary)
 
                 HStack(spacing: 12) {
                     Text("Log value")
@@ -146,7 +148,9 @@ struct HabitDetailCard: View {
                 HStack(spacing: 8) {
                     quickAction("-1") { onUpdate(max(0, habit.currentValue - 1)) }
                     quickAction("+1") { onUpdate(habit.currentValue + 1) }
-                    quickAction("Hit target") { onUpdate(habit.targetValue) }
+                    quickAction("Hit target") {
+                        onUpdate(habit.targetType == "RANGE" ? habit.targetMax : habit.targetMin)
+                    }
                 }
             }
         }

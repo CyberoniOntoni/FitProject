@@ -156,9 +156,15 @@ struct HomeView: View {
                         HabitCounterView(habit: habit) { newValue in
                             Task {
                                 guard let userId = appState.authService.currentUser?.id else { return }
-                                try? await appState.syncEngine.pushHabitUpdate(habitId: habit.id, userId: userId, value: newValue)
+                                try? await appState.syncEngine.pushHabitUpdate(habit: habit, userId: userId, value: newValue)
                                 if let idx = appState.habits.firstIndex(where: { $0.id == habit.id }) {
                                     appState.habits[idx].currentValue = newValue
+                                    appState.habits[idx].targetMet = HabitSyncHelper.isTargetMet(
+                                        type: habit.targetType,
+                                        min: habit.targetMin,
+                                        max: habit.targetMax,
+                                        value: newValue
+                                    )
                                 }
                             }
                         }

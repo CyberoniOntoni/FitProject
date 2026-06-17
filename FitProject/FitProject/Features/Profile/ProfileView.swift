@@ -107,6 +107,16 @@ struct ProfileView: View {
             }
 
             NavigationLink {
+                ProgressPhotosView()
+            } label: {
+                trackMenuRow(
+                    icon: "camera",
+                    title: "Progress Photos",
+                    subtitle: "Visual body transformation · \(appState.progressSessions.count) sessions"
+                )
+            }
+
+            NavigationLink {
                 PersonalRecordsView()
             } label: {
                 trackMenuRow(

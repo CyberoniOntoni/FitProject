@@ -186,26 +186,103 @@ public sealed class FPLoggedSet : System.ComponentModel.INotifyPropertyChanged
 public sealed class FPHabit
 {
     public string Id { get; set; } = "";
+    public string HabitId { get; set; } = "";
     public string Name { get; set; } = "";
     public string? Description { get; set; }
-    public double TargetValue { get; set; }
     public string Unit { get; set; } = "";
+    public string Frequency { get; set; } = "Per Day";
+    public string TargetType { get; set; } = "FLOOR";
+    public double TargetMin { get; set; }
+    public double TargetMax { get; set; }
     public string? Icon { get; set; }
     public string? Color { get; set; }
+    public int Index { get; set; }
+    public string CoachId { get; set; } = "";
     public double CurrentValue { get; set; }
-    public int Streak { get; set; }
+    public bool TargetMet { get; set; }
+    public DateTime? LogDateCreated { get; set; }
 
-    public double Progress => TargetValue > 0 ? Math.Min(CurrentValue / TargetValue, 1.0) : 0;
-    public string ProgressText => $"{CurrentValue:0.#} / {TargetValue:0.#}{Unit}";
+    public double TargetValue => TargetType == "RANGE" ? TargetMax : TargetMin;
+
+    public bool IsComplete => HabitSyncHelper.IsTargetMet(TargetType, TargetMin, TargetMax, CurrentValue);
+
+    public double Progress => HabitSyncHelper.Progress(TargetType, TargetMin, TargetMax, CurrentValue);
+
+    public string ProgressText => HabitSyncHelper.ProgressText(TargetType, TargetMin, TargetMax, CurrentValue, Unit);
 }
 
 public sealed class FPHabitLog
 {
     public string Id { get; set; } = "";
-    public string HabitId { get; set; } = "";
+    public string UserHabitId { get; set; } = "";
     public string UserId { get; set; } = "";
     public DateTime Date { get; set; }
     public double Value { get; set; }
+    public bool TargetMet { get; set; }
+    public DateTime? DateCreated { get; set; }
+}
+
+public static class HabitSyncHelper
+{
+    public static string TargetTypeFromValues(IReadOnlyList<double> values, string? explicitType = null)
+    {
+        if (!string.IsNullOrEmpty(explicitType)) return explicitType;
+        return values.Count >= 2 ? "RANGE" : "FLOOR";
+    }
+
+    public static bool IsTargetMet(string targetType, double min, double max, double value) => targetType switch
+    {
+        "CEILING" => value <= min,
+        "RANGE" => value >= min && value <= max,
+        _ => value >= min
+    };
+
+    public static double Progress(string targetType, double min, double max, double value)
+    {
+        if (IsTargetMet(targetType, min, max, value)) return 1;
+        return targetType switch
+        {
+            "CEILING" => min > 0 ? Math.Min(value / min, 1) : 0,
+            "RANGE" when value < min && min > 0 => value / min,
+            "RANGE" when value > max && value > 0 => max / value,
+            _ => min > 0 ? Math.Min(value / min, 1) : 0
+        };
+    }
+
+    public static string ProgressText(string targetType, double min, double max, double value, string unit)
+    {
+        var suffix = string.IsNullOrEmpty(unit) ? "" : $" {unit}";
+        var current = value % 1 == 0 ? value.ToString("0") : value.ToString("0.#");
+        var target = targetType == "RANGE"
+            ? $"{min:0.#}-{max:0.#}"
+            : (min % 1 == 0 ? min.ToString("0") : min.ToString("0.#"));
+        return $"{current} / {target}{suffix}";
+    }
+
+    public static long StartOfDayUnix(DateTime date)
+    {
+        var local = date.Date;
+        return new DateTimeOffset(local).ToUnixTimeSeconds();
+    }
+}
+
+public sealed class FPProgressPicture
+{
+    public string Id { get; set; } = "";
+    public string UserId { get; set; } = "";
+    public string SessionId { get; set; } = "";
+    public string PoseType { get; set; } = "front";
+    public string ImageUrl { get; set; } = "";
+    public DateTime DateCreated { get; set; }
+    public string? Notes { get; set; }
+}
+
+public sealed class FPProgressSession
+{
+    public string SessionId { get; set; } = "";
+    public DateTime DateCreated { get; set; }
+    public List<FPProgressPicture> Pictures { get; set; } = [];
+    public string? Notes { get; set; }
 }
 
 public sealed class FPMeasurement

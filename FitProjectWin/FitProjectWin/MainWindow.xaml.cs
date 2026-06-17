@@ -87,6 +87,7 @@ public sealed partial class MainWindow : Window
             "History" => new HistoryPage(),
             "Profile" => new ProfilePage(),
             "Habits" => new HabitsPage(),
+            "ProgressPhotos" => new ProgressPhotosPage(),
             "Measurements" => new MeasurementsPage(),
             "PersonalRecords" => new PersonalRecordsPage(),
             _ => null

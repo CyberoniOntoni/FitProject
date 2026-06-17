@@ -31,6 +31,192 @@ internal static class FirestoreParser
         return raw is null ? null : DateTime.Parse(raw.Replace("Z", "+00:00"));
     }
 
+    public static string? GetNestedString(JsonElement fields, string parent, string child)
+    {
+        if (!fields.TryGetProperty(parent, out var parentField) ||
+            !parentField.TryGetProperty("mapValue", out var map) ||
+            !map.TryGetProperty("fields", out var mapFields))
+            return null;
+        return GetString(mapFields, child);
+    }
+
+    public static List<double> GetNumberArray(JsonElement fields, string key)
+    {
+        if (!fields.TryGetProperty(key, out var f) || !f.TryGetProperty("arrayValue", out var arr)) return [];
+        if (!arr.TryGetProperty("values", out var values)) return [];
+        var result = new List<double>();
+        foreach (var item in values.EnumerateArray())
+        {
+            if (item.TryGetProperty("integerValue", out var i) && double.TryParse(i.GetString(), out var iv))
+                result.Add(iv);
+            else if (item.TryGetProperty("doubleValue", out var d))
+                result.Add(d.GetDouble());
+        }
+        return result;
+    }
+
+    public static (List<double> Values, string Unit, string Frequency, string? TargetType) ParseHabitTarget(JsonElement fields)
+    {
+        if (!fields.TryGetProperty("target", out var targetField) ||
+            !targetField.TryGetProperty("mapValue", out var map) ||
+            !map.TryGetProperty("fields", out var tf))
+            return ([], "", "Per Day", null);
+
+        var values = GetNumberArray(tf, "value");
+        var unit = GetString(tf, "unit") ?? "";
+        var frequency = GetString(tf, "frequency") ?? "Per Day";
+        var targetType = GetString(tf, "targetType");
+        return (values, unit, frequency, targetType);
+    }
+
+    public static FPHabit? ParseUserHabit(JsonElement doc)
+    {
+        var fields = doc.GetProperty("fields");
+        var id = doc.GetProperty("name").GetString()!.Split('/').Last();
+        var (values, unit, frequency, explicitType) = ParseHabitTarget(fields);
+        if (values.Count == 0) return null;
+
+        var targetType = HabitSyncHelper.TargetTypeFromValues(values, explicitType);
+        var targetMin = values[0];
+        var targetMax = values.Count > 1 ? values[1] : values[0];
+
+        string? icon = null;
+        if (fields.TryGetProperty("icon", out var iconField) &&
+            iconField.TryGetProperty("mapValue", out var iconMap) &&
+            iconMap.TryGetProperty("fields", out var iconFields))
+            icon = GetString(iconFields, "mobileIcon") ?? GetString(iconFields, "name");
+
+        return new FPHabit
+        {
+            Id = id,
+            HabitId = GetString(fields, "habitId") ?? id.Split('_').FirstOrDefault() ?? id,
+            Name = GetString(fields, "name") ?? "",
+            Description = GetString(fields, "description"),
+            Unit = unit,
+            Frequency = frequency,
+            TargetType = targetType,
+            TargetMin = targetMin,
+            TargetMax = targetMax,
+            Icon = icon,
+            Color = GetString(fields, "color"),
+            Index = GetInt(fields, "index"),
+            CoachId = GetNestedString(fields, "coach", "id") ?? GetNestedString(fields, "client", "id") ?? ""
+        };
+    }
+
+    public static string? GetUserHabitIdFromLog(JsonElement fields) =>
+        GetNestedString(fields, "userHabit", "id");
+
+    public static object FirestoreEmbeddedUserHabit(FPHabit habit) => new
+    {
+        mapValue = new
+        {
+            fields = new Dictionary<string, object>
+            {
+                ["id"] = FirestoreValue(habit.Id),
+                ["coach"] = new
+                {
+                    mapValue = new
+                    {
+                        fields = FirestoreFields(new Dictionary<string, object?>
+                        {
+                            ["id"] = habit.CoachId
+                        })
+                    }
+                },
+                ["target"] = new
+                {
+                    mapValue = new
+                    {
+                        fields = new Dictionary<string, object>
+                        {
+                            ["unit"] = FirestoreValue(habit.Unit),
+                            ["frequency"] = FirestoreValue(habit.Frequency),
+                            ["value"] = FirestoreNumberArray(
+                                habit.TargetType == "RANGE"
+                                    ? [habit.TargetMin, habit.TargetMax]
+                                    : [habit.TargetMin])
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    public static object FirestoreNumberArray(IEnumerable<double> values) => new
+    {
+        arrayValue = new
+        {
+            values = values.Select(v =>
+                v % 1 == 0
+                    ? FirestoreValue((long)v)
+                    : FirestoreValue(v))
+        }
+    };
+
+    public static Dictionary<string, object> FirestoreUserHabitLogFields(
+        FPHabit habit, string userId, double value, DateTime forDate, DateTime? existingDateCreated)
+    {
+        var now = DateTime.UtcNow;
+        var startOfDay = forDate.Date;
+        var targetMet = HabitSyncHelper.IsTargetMet(habit.TargetType, habit.TargetMin, habit.TargetMax, value);
+        var fields = FirestoreFields(new Dictionary<string, object?>
+        {
+            ["userId"] = userId,
+            ["date"] = startOfDay,
+            ["dateCreated"] = existingDateCreated ?? now,
+            ["lastUpdated"] = now,
+            ["value"] = value,
+            ["targetMet"] = targetMet
+        });
+        fields["userHabit"] = FirestoreEmbeddedUserHabit(habit);
+        return fields;
+    }
+
+    public static FPProgressPicture? ParseProgressPicture(JsonElement doc)
+    {
+        var fields = doc.GetProperty("fields");
+        var date = GetTimestamp(fields, "dateCreated");
+        if (date is null) return null;
+
+        return new FPProgressPicture
+        {
+            Id = doc.GetProperty("name").GetString()!.Split('/').Last(),
+            UserId = GetString(fields, "userId") ?? "",
+            SessionId = GetString(fields, "sessionId") ?? doc.GetProperty("name").GetString()!.Split('/').Last(),
+            PoseType = GetString(fields, "poseType") ?? "front",
+            ImageUrl = GetString(fields, "imageUrl") ?? "",
+            DateCreated = date.Value,
+            Notes = GetString(fields, "notes")
+        };
+    }
+
+    public static List<FPProgressSession> GroupProgressSessions(IEnumerable<FPProgressPicture> pictures)
+    {
+        var poseOrder = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["front"] = 0,
+            ["side"] = 1,
+            ["back"] = 2
+        };
+
+        return pictures
+            .GroupBy(p => p.SessionId)
+            .Select(group =>
+            {
+                var sorted = group.OrderBy(p => poseOrder.GetValueOrDefault(p.PoseType, 99)).ToList();
+                return new FPProgressSession
+                {
+                    SessionId = group.Key,
+                    DateCreated = sorted[0].DateCreated,
+                    Pictures = sorted,
+                    Notes = sorted.Select(p => p.Notes).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))
+                };
+            })
+            .OrderByDescending(s => s.DateCreated)
+            .ToList();
+    }
+
     public static List<string> GetStringArray(JsonElement fields, string key)
     {
         if (!fields.TryGetProperty(key, out var f) || !f.TryGetProperty("arrayValue", out var arr)) return [];
