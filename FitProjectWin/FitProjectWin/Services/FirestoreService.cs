@@ -387,8 +387,12 @@ public sealed class FirestoreService
     private async Task<JsonElement> GetDocumentAsync(string path)
     {
         var url = $"{FirebaseConfig.FirestoreBaseUrl}/{path}";
-        return await _http.GetFromJsonAsync<JsonElement>(url)
-            ?? throw new InvalidOperationException($"Document not found: {path}");
+        var response = await _http.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+        var doc = await response.Content.ReadFromJsonAsync<JsonElement>();
+        if (doc.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
+            throw new InvalidOperationException($"Document not found: {path}");
+        return doc;
     }
 
     private async Task PatchDocumentAsync(string path, Dictionary<string, object?> data)

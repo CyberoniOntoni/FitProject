@@ -12,7 +12,7 @@ public partial class WorkoutSessionViewModel : ObservableObject, IDisposable
     private readonly AuthService _auth;
     private readonly Stopwatch _stopwatch = new();
     private readonly Timer _timer;
-    private readonly Timer? _restTimer;
+    private Timer? _restTimer;
 
     public FPWorkout Workout { get; }
     public FPProgram? Program { get; }
@@ -161,15 +161,21 @@ public partial class WorkoutSessionViewModel : ObservableObject, IDisposable
 
     private void StartRestTimer(int seconds)
     {
+        _restTimer?.Dispose();
         RestSecondsRemaining = seconds;
         ShowRestTimer = true;
-        _ = new Timer(_ =>
+        _restTimer = new Timer(_ =>
         {
             var dq = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
             dq?.TryEnqueue(() =>
             {
                 if (RestSecondsRemaining > 0) RestSecondsRemaining--;
-                else ShowRestTimer = false;
+                else
+                {
+                    ShowRestTimer = false;
+                    _restTimer?.Dispose();
+                    _restTimer = null;
+                }
             });
         }, null, 0, 1000);
     }

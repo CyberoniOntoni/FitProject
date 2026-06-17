@@ -65,7 +65,7 @@ public sealed partial class WorkoutSessionPage : Page
             {
                 Height = 180,
                 Source = new BitmapImage(new Uri(exercise.VideoThumbnailUrl)),
-                Stretch = Stretch.UniformToFill
+                Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill
             };
             img.Tapped += (_, _) => _vm.OpenVideoCommand.Execute(null);
             ExercisePanel.Children.Add(img);
@@ -124,7 +124,7 @@ public sealed partial class WorkoutSessionPage : Page
         var addSetBtn = new Button
         {
             Content = "+ Add Set",
-            HorizontalAlignment = Stretch,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
             Background = (Brush)Application.Current.Resources["SurfaceHighlightBrush"],
             Foreground = (Brush)Application.Current.Resources["AccentBrush"],
             Margin = new Thickness(0, 8, 0, 0)
@@ -171,7 +171,7 @@ public sealed partial class WorkoutSessionPage : Page
             var box = new TextBox
             {
                 Text = GetMetricValue(set, metric.Name) ?? "",
-                HorizontalAlignment = Stretch,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 Background = (Brush)Application.Current.Resources["SurfaceHighlightBrush"],
                 Foreground = (Brush)Application.Current.Resources["TextPrimaryBrush"]
             };
