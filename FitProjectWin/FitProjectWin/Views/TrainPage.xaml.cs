@@ -24,4 +24,7 @@ public sealed partial class TrainPage : Page
         if ((sender as Button)?.Tag is FPHabit habit)
             await ViewModel.Data.UpdateHabitAsync(habit.Id, habit.CurrentValue + 1);
     }
+
+    private void OpenHabits_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) =>
+        App.NavigationService?.Navigate("Habits");
 }

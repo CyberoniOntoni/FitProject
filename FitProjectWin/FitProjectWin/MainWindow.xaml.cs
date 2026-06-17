@@ -1,3 +1,4 @@
+using FitProjectWin.Services;
 using FitProjectWin.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -16,6 +17,7 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(null);
         AppWindow.Resize(new Windows.Graphics.SizeInt32(420, 800));
+        App.NavigationService = new NavigationService(NavigateTo);
 
         _vm.Auth.AuthStateChanged += UpdateUI;
         _vm.PropertyChanged += (_, e) =>
@@ -25,6 +27,12 @@ public sealed partial class MainWindow : Window
                 WorkoutOverlay.Visibility = _vm.ShowWorkoutSession ? Visibility.Visible : Visibility.Collapsed;
                 if (_vm.ShowWorkoutSession && _vm.WorkoutSession is not null)
                     WorkoutPage.Bind(_vm.WorkoutSession);
+            }
+            if (e.PropertyName is nameof(MainViewModel.ShowVideoPlayer))
+            {
+                VideoOverlay.Visibility = _vm.ShowVideoPlayer ? Visibility.Visible : Visibility.Collapsed;
+                if (_vm.ShowVideoPlayer && !string.IsNullOrEmpty(_vm.VideoYoutubeId))
+                    VideoPage.Play(_vm.VideoYoutubeId, _vm.VideoTitle);
             }
         };
 
@@ -66,6 +74,8 @@ public sealed partial class MainWindow : Window
             "Learn" => new LearnPage(),
             "History" => new HistoryPage(),
             "Profile" => new ProfilePage(),
+            "Habits" => new HabitsPage(),
+            "Measurements" => new MeasurementsPage(),
             _ => null
         };
         if (page is not null) ContentFrame.Content = page;

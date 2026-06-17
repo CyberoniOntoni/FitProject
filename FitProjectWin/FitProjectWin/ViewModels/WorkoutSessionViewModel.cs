@@ -154,9 +154,9 @@ public partial class WorkoutSessionViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void OpenVideo()
     {
-        var url = CurrentExercise?.YoutubeWatchUrl;
-        if (url is not null)
-            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        var exercise = CurrentExercise;
+        if (exercise is not null && !string.IsNullOrEmpty(exercise.YoutubeId))
+            App.ViewModel.PlayExerciseVideo(exercise.YoutubeId, exercise.Name);
     }
 
     private void StartRestTimer(int seconds)

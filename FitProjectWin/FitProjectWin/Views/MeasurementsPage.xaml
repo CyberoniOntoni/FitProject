@@ -1,0 +1,52 @@
+<Page
+    x:Class="FitProjectWin.Views.MeasurementsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{StaticResource BackgroundBrush}">
+
+    <ScrollViewer Padding="24,16,24,24">
+        <StackPanel Spacing="16">
+            <Grid>
+                <Button Content="← Back" Click="Back_Click" HorizontalAlignment="Left"
+                        Background="Transparent" Foreground="{StaticResource AccentBrush}" />
+                <TextBlock Text="Measurements" Style="{StaticResource HeadlineStyle}"
+                           HorizontalAlignment="Center" />
+            </Grid>
+
+            <Border Style="{StaticResource CardBorderStyle}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Log Measurement" Style="{StaticResource SectionTitleStyle}" />
+
+                    <ComboBox x:Name="TypeCombo" Header="Measurement type" HorizontalAlignment="Stretch"
+                              SelectionChanged="TypeCombo_SelectionChanged" />
+
+                    <NumberBox x:Name="ValueBox" Header="Value" HorizontalAlignment="Stretch"
+                               Minimum="0" SpinButtonPlacementMode="Inline"
+                               Background="{StaticResource SurfaceHighlightBrush}" />
+
+                    <TextBlock x:Name="UnitLabel" Style="{StaticResource CaptionStyle}" />
+
+                    <TextBox x:Name="NotesBox" Header="Notes (optional)" PlaceholderText="e.g. morning weigh-in"
+                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60"
+                             Background="{StaticResource SurfaceHighlightBrush}"
+                             Foreground="{StaticResource TextPrimaryBrush}" />
+
+                    <Button Content="Save Measurement" Style="{StaticResource PrimaryButtonStyle}"
+                            Click="Save_Click" />
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="TrendCard" Style="{StaticResource CardBorderStyle}" Visibility="Collapsed">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Weight Trend" Style="{StaticResource SectionTitleStyle}" />
+                    <StackPanel x:Name="TrendChart" Orientation="Horizontal" Spacing="6" Height="100" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="History" Style="{StaticResource SectionTitleStyle}" />
+            <StackPanel x:Name="HistoryList" Spacing="8" />
+            <TextBlock x:Name="EmptyHistory" Text="No measurements logged yet. Record your first one above."
+                       Style="{StaticResource CaptionStyle}" TextWrapping="Wrap" Visibility="Collapsed" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

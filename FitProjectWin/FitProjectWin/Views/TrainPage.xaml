@@ -55,7 +55,11 @@
             <!-- Habits -->
             <StackPanel Spacing="12"
                         Visibility="{x:Bind ViewModel.Data.Habits.Count, Mode=OneWay, Converter={StaticResource CountToVisible}}">
-                <TextBlock Text="Habits" Style="{StaticResource SectionTitleStyle}" />
+                <Grid>
+                    <TextBlock Text="Habits" Style="{StaticResource SectionTitleStyle}" />
+                    <HyperlinkButton Content="See all" Click="OpenHabits_Click"
+                                     HorizontalAlignment="Right" Foreground="{StaticResource AccentBrush}" />
+                </Grid>
                 <ItemsRepeater ItemsSource="{x:Bind ViewModel.Data.Habits, Mode=OneWay}">
                     <ItemsRepeater.ItemTemplate>
                         <DataTemplate x:DataType="models:FPHabit" xmlns:models="using:FitProjectWin.Models">

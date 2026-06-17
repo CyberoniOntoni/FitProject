@@ -230,9 +230,17 @@ public sealed class AppDataService
 
     public async Task UpdateHabitAsync(string habitId, double value)
     {
-        if (_auth.IdToken is null) return;
+        if (_auth.IdToken is null || _auth.CurrentUser is null) return;
         var fs = new FirestoreService(_auth.IdToken);
         await fs.UpdateHabitValueAsync(habitId, value);
+        await fs.SaveHabitLogAsync(new FPHabitLog
+        {
+            Id = Guid.NewGuid().ToString(),
+            HabitId = habitId,
+            UserId = _auth.CurrentUser.Id,
+            Date = DateTime.UtcNow,
+            Value = value
+        });
         var habit = Habits.FirstOrDefault(h => h.Id == habitId);
         if (habit is not null) habit.CurrentValue = value;
         DataChanged?.Invoke();

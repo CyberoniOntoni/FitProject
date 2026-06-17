@@ -67,8 +67,18 @@ public sealed partial class WorkoutSessionPage : Page
                 Source = new BitmapImage(new Uri(exercise.VideoThumbnailUrl)),
                 Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill
             };
-            img.Tapped += (_, _) => _vm.OpenVideoCommand.Execute(null);
             ExercisePanel.Children.Add(img);
+
+            var watchBtn = new Button
+            {
+                Content = "▶  Watch instructional video",
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Background = (Brush)Application.Current.Resources["AccentBrush"],
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                Margin = new Thickness(0, 0, 0, 4)
+            };
+            watchBtn.Click += (_, _) => _vm.OpenVideoCommand.Execute(null);
+            ExercisePanel.Children.Add(watchBtn);
         }
 
         ExercisePanel.Children.Add(new TextBlock

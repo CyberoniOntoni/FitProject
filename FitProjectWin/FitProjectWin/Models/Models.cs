@@ -199,6 +199,15 @@ public sealed class FPHabit
     public string ProgressText => $"{CurrentValue:0.#} / {TargetValue:0.#}{Unit}";
 }
 
+public sealed class FPHabitLog
+{
+    public string Id { get; set; } = "";
+    public string HabitId { get; set; } = "";
+    public string UserId { get; set; } = "";
+    public DateTime Date { get; set; }
+    public double Value { get; set; }
+}
+
 public sealed class FPMeasurement
 {
     public string Id { get; set; } = "";

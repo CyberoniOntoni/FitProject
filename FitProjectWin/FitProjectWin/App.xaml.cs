@@ -1,3 +1,4 @@
+using FitProjectWin.Services;
 using FitProjectWin.ViewModels;
 using Microsoft.UI.Xaml;
 
@@ -6,6 +7,7 @@ namespace FitProjectWin;
 public partial class App : Application
 {
     public static MainViewModel ViewModel { get; } = new();
+    public static NavigationService? NavigationService { get; set; }
 
     public App()
     {

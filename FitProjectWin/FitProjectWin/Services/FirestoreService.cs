@@ -213,6 +213,17 @@ public sealed class FirestoreService
         });
     }
 
+    public async Task SaveHabitLogAsync(FPHabitLog log)
+    {
+        await PatchDocumentAsync($"habitLogs/{log.Id}", new Dictionary<string, object?>
+        {
+            ["habitId"] = log.HabitId,
+            ["userId"] = log.UserId,
+            ["date"] = log.Date,
+            ["value"] = log.Value
+        });
+    }
+
     public async Task<List<FPMeasurement>> FetchMeasurementsAsync(string userId)
     {
         var results = await RunQueryAsync(new

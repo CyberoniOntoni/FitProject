@@ -31,16 +31,44 @@
                 </StackPanel>
             </Border>
 
+            <TextBlock Text="Track &amp; Record" Style="{StaticResource SectionTitleStyle}" />
+
+            <Button Click="OpenHabits_Click" HorizontalAlignment="Stretch"
+                    Background="{StaticResource SurfaceBrush}" Padding="16">
+                <Grid>
+                    <StackPanel Spacing="4" HorizontalAlignment="Left">
+                        <TextBlock Text="Habits" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock Style="{StaticResource CaptionStyle}">
+                            <Run Text="Record daily habits · " />
+                            <Run Text="{x:Bind ViewModel.Data.Habits.Count, Mode=OneWay}" />
+                            <Run Text=" active" />
+                        </TextBlock>
+                    </StackPanel>
+                    <FontIcon Glyph="&#xE892;" HorizontalAlignment="Right"
+                              Foreground="{StaticResource TextTertiaryBrush}" />
+                </Grid>
+            </Button>
+
+            <Button Click="OpenMeasurements_Click" HorizontalAlignment="Stretch"
+                    Background="{StaticResource SurfaceBrush}" Padding="16">
+                <Grid>
+                    <StackPanel Spacing="4" HorizontalAlignment="Left">
+                        <TextBlock Text="Body Measurements" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock Style="{StaticResource CaptionStyle}">
+                            <Run Text="Log weight, body comp &amp; more · " />
+                            <Run Text="{x:Bind ViewModel.Data.Measurements.Count, Mode=OneWay}" />
+                            <Run Text=" entries" />
+                        </TextBlock>
+                    </StackPanel>
+                    <FontIcon Glyph="&#xE892;" HorizontalAlignment="Right"
+                              Foreground="{StaticResource TextTertiaryBrush}" />
+                </Grid>
+            </Button>
+
             <Border Style="{StaticResource CardBorderStyle}">
                 <StackPanel Spacing="8">
-                    <TextBlock Style="{StaticResource CaptionStyle}">
-                        <Run Text="{x:Bind ViewModel.Data.Habits.Count, Mode=OneWay}" />
-                        <Run Text=" habits tracked" />
-                    </TextBlock>
-                    <TextBlock Style="{StaticResource CaptionStyle}">
-                        <Run Text="{x:Bind ViewModel.Data.Measurements.Count, Mode=OneWay}" />
-                        <Run Text=" measurements logged" />
-                    </TextBlock>
                     <TextBlock Style="{StaticResource CaptionStyle}">
                         <Run Text="{x:Bind ViewModel.Data.PersonalRecords.Count, Mode=OneWay}" />
                         <Run Text=" personal records" />
