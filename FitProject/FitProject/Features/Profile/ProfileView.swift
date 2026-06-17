@@ -80,16 +80,30 @@ struct ProfileView: View {
 
     private var menuSection: some View {
         VStack(spacing: 2) {
+            Text("Track & Record")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(BWSTheme.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 4)
+
             NavigationLink {
                 HabitsView()
             } label: {
-                menuRow(icon: "checkmark.circle", title: "Habits", badge: "\(appState.habits.count)")
+                trackMenuRow(
+                    icon: "checkmark.circle",
+                    title: "Habits",
+                    subtitle: "Record daily habits · \(appState.habits.count) active"
+                )
             }
 
             NavigationLink {
                 MeasurementsView()
             } label: {
-                menuRow(icon: "ruler", title: "Measurements", badge: "\(appState.measurements.count)")
+                trackMenuRow(
+                    icon: "ruler",
+                    title: "Body Measurements",
+                    subtitle: "Weight, body comp & more · \(appState.measurements.count) entries"
+                )
             }
 
             menuRow(icon: "trophy", title: "Personal Records", badge: "\(appState.personalRecords.count)")
@@ -99,8 +113,34 @@ struct ProfileView: View {
         .clipShape(RoundedRectangle(cornerRadius: BWSTheme.cardRadius))
     }
 
+    private func trackMenuRow(icon: String, title: String, subtitle: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundStyle(BWSTheme.accent)
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(BWSTheme.textPrimary)
+                Text(subtitle)
+                    .font(BWSTheme.captionFont)
+                    .foregroundStyle(BWSTheme.textSecondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(BWSTheme.textTertiary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+    }
+
     private func menuRow(icon: String, title: String, badge: String) -> some View {
-        HStack {
+        HStack(spacing: 12) {
             Image(systemName: icon)
                 .foregroundStyle(BWSTheme.accent)
                 .frame(width: 28)

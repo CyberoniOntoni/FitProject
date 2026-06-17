@@ -116,9 +116,11 @@ struct HabitDetailCard: View {
                     .foregroundStyle(habit.progress >= 1 ? BWSTheme.success : BWSTheme.textSecondary)
 
                 HStack(spacing: 12) {
-                    Text("Log value:")
+                    Text("Log value")
                         .font(BWSTheme.captionFont)
                         .foregroundStyle(BWSTheme.textSecondary)
+                        .frame(width: 64, alignment: .leading)
+
                     TextField("0", text: $inputValue)
                         .keyboardType(.decimalPad)
                         .font(.system(size: 18, weight: .bold, design: .rounded))
@@ -127,7 +129,7 @@ struct HabitDetailCard: View {
                         .padding(.vertical, 8)
                         .background(BWSTheme.surfaceHighlight)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .frame(width: 100)
+
                     Button("Save") {
                         if let value = Double(inputValue) {
                             onUpdate(value)
@@ -136,7 +138,7 @@ struct HabitDetailCard: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 10)
                     .background(BWSTheme.accentGradient)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
@@ -163,10 +165,11 @@ struct HabitDetailCard: View {
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(BWSTheme.textPrimary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
                 .background(BWSTheme.surfaceHighlight)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
+        .buttonStyle(.plain)
     }
 }

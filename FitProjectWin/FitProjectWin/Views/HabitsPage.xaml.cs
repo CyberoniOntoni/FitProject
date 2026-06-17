@@ -42,7 +42,7 @@ public sealed partial class HabitsPage : Page
             SmallChange = habit.TargetValue >= 1000 ? 500 : 1,
             LargeChange = habit.TargetValue >= 1000 ? 1000 : 5,
             SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
-            Width = 120,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
             Background = (Brush)Application.Current.Resources["SurfaceHighlightBrush"],
             Foreground = (Brush)Application.Current.Resources["TextPrimaryBrush"]
         };
@@ -67,10 +67,10 @@ public sealed partial class HabitsPage : Page
         var saveBtn = new Button
         {
             Content = "Save",
+            MinWidth = 72,
             Background = (Brush)Application.Current.Resources["AccentBrush"],
             Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            Margin = new Thickness(0, 8, 0, 0)
+            VerticalAlignment = VerticalAlignment.Center
         };
 
         saveBtn.Click += async (_, _) =>
@@ -81,46 +81,86 @@ public sealed partial class HabitsPage : Page
             Refresh();
         };
 
-        valueBox.ValueChanged += async (_, args) =>
+        var quickGrid = new Grid { ColumnSpacing = 8, Margin = new Thickness(0, 4, 0, 0) };
+        quickGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        quickGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        quickGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var minusBtn = CreateQuickButton("−1");
+        minusBtn.Click += async (_, _) =>
         {
-            if (args.NewValue < 0) return;
-            await ViewModel.Data.UpdateHabitAsync(habit.Id, args.NewValue);
-            statusText.Text = args.NewValue >= habit.TargetValue ? "✓ Complete" : $"{args.NewValue:0.#} / {habit.TargetValue:0.#}{habit.Unit}";
-            progress.Value = habit.TargetValue > 0 ? Math.Min(args.NewValue / habit.TargetValue, 1) : 0;
+            valueBox.Value = Math.Max(0, valueBox.Value - 1);
+            await ViewModel.Data.UpdateHabitAsync(habit.Id, valueBox.Value);
+            Refresh();
         };
+        Grid.SetColumn(minusBtn, 0);
+        quickGrid.Children.Add(minusBtn);
 
-        var quickRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 8, 0, 0) };
+        var plusBtn = CreateQuickButton("+1");
+        plusBtn.Click += async (_, _) =>
+        {
+            valueBox.Value += 1;
+            await ViewModel.Data.UpdateHabitAsync(habit.Id, valueBox.Value);
+            Refresh();
+        };
+        Grid.SetColumn(plusBtn, 1);
+        quickGrid.Children.Add(plusBtn);
 
-        var minusBtn = new Button { Content = "−1", Background = (Brush)Application.Current.Resources["SurfaceHighlightBrush"], Padding = new Thickness(12, 6, 12, 6) };
-        minusBtn.Click += async (_, _) => { valueBox.Value = Math.Max(0, valueBox.Value - 1); await ViewModel.Data.UpdateHabitAsync(habit.Id, valueBox.Value); Refresh(); };
-        quickRow.Children.Add(minusBtn);
+        var targetBtn = CreateQuickButton("Hit target");
+        targetBtn.Click += async (_, _) =>
+        {
+            valueBox.Value = habit.TargetValue;
+            await ViewModel.Data.UpdateHabitAsync(habit.Id, habit.TargetValue);
+            Refresh();
+        };
+        Grid.SetColumn(targetBtn, 2);
+        quickGrid.Children.Add(targetBtn);
 
-        var plusBtn = new Button { Content = "+1", Background = (Brush)Application.Current.Resources["SurfaceHighlightBrush"], Padding = new Thickness(12, 6, 12, 6) };
-        plusBtn.Click += async (_, _) => { valueBox.Value += 1; await ViewModel.Data.UpdateHabitAsync(habit.Id, valueBox.Value); Refresh(); };
-        quickRow.Children.Add(plusBtn);
+        var inputGrid = new Grid { ColumnSpacing = 12, Margin = new Thickness(0, 8, 0, 0) };
+        inputGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        inputGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        inputGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        var targetBtn = new Button { Content = "Hit target", Background = (Brush)Application.Current.Resources["SurfaceHighlightBrush"], Padding = new Thickness(12, 6, 12, 6) };
-        targetBtn.Click += async (_, _) => { valueBox.Value = habit.TargetValue; await ViewModel.Data.UpdateHabitAsync(habit.Id, habit.TargetValue); Refresh(); };
-        quickRow.Children.Add(targetBtn);
+        var label = new TextBlock
+        {
+            Text = "Log value",
+            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"]
+        };
+        Grid.SetColumn(label, 0);
+        inputGrid.Children.Add(label);
 
-        var panel = new StackPanel { Spacing = 6 };
+        Grid.SetColumn(valueBox, 1);
+        inputGrid.Children.Add(valueBox);
+
+        Grid.SetColumn(saveBtn, 2);
+        inputGrid.Children.Add(saveBtn);
+
+        var panel = new StackPanel { Spacing = 8 };
         var header = new Grid();
-        header.Children.Add(new TextBlock
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var title = new TextBlock
         {
             Text = habit.Name,
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
             FontSize = 16,
             Foreground = (Brush)Application.Current.Resources["TextPrimaryBrush"]
-        });
+        };
+        Grid.SetColumn(title, 0);
+        header.Children.Add(title);
+
         if (habit.Streak > 0)
         {
             var streak = new TextBlock
             {
                 Text = $"🔥 {habit.Streak} day streak",
-                HorizontalAlignment = HorizontalAlignment.Right,
                 Foreground = (Brush)Application.Current.Resources["WarningBrush"],
-                FontSize = 12
+                FontSize = 12,
+                HorizontalAlignment = HorizontalAlignment.Right
             };
+            Grid.SetColumn(streak, 1);
             header.Children.Add(streak);
         }
         panel.Children.Add(header);
@@ -135,18 +175,8 @@ public sealed partial class HabitsPage : Page
 
         panel.Children.Add(progress);
         panel.Children.Add(statusText);
-
-        var inputRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Margin = new Thickness(0, 4, 0, 0) };
-        inputRow.Children.Add(new TextBlock
-        {
-            Text = "Log value:",
-            VerticalAlignment = VerticalAlignment.Center,
-            Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"]
-        });
-        inputRow.Children.Add(valueBox);
-        panel.Children.Add(inputRow);
-        panel.Children.Add(quickRow);
-        panel.Children.Add(saveBtn);
+        panel.Children.Add(inputGrid);
+        panel.Children.Add(quickGrid);
 
         return new Border
         {
@@ -154,6 +184,15 @@ public sealed partial class HabitsPage : Page
             Child = panel
         };
     }
+
+    private static Button CreateQuickButton(string label) => new()
+    {
+        Content = label,
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+        HorizontalContentAlignment = HorizontalAlignment.Center,
+        Background = (Brush)Application.Current.Resources["SurfaceHighlightBrush"],
+        Padding = new Thickness(8, 10, 8, 10)
+    };
 
     private void Back_Click(object sender, RoutedEventArgs e) =>
         App.NavigationService?.Navigate("Profile");

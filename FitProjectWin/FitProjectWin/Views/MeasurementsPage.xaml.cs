@@ -7,15 +7,15 @@ namespace FitProjectWin.Views;
 
 public sealed partial class MeasurementsPage : Page
 {
-    private static readonly (string Name, string Unit)[] Types =
+    public static readonly (string Name, string Unit, string Category)[] Types =
     [
-        ("Weight", "kg"),
-        ("Body Fat", "%"),
-        ("Chest", "cm"),
-        ("Waist", "cm"),
-        ("Hips", "cm"),
-        ("Arms", "cm"),
-        ("Thighs", "cm")
+        ("Weight", "kg", "Body Composition"),
+        ("Body Fat", "%", "Body Composition"),
+        ("Chest", "cm", "Circumference"),
+        ("Waist", "cm", "Circumference"),
+        ("Hips", "cm", "Circumference"),
+        ("Arms", "cm", "Circumference"),
+        ("Thighs", "cm", "Circumference")
     ];
 
     public MainViewModel ViewModel { get; } = App.ViewModel;
@@ -23,7 +23,7 @@ public sealed partial class MeasurementsPage : Page
     public MeasurementsPage()
     {
         InitializeComponent();
-        foreach (var (name, _) in Types)
+        foreach (var (name, _, _) in Types)
             TypeCombo.Items.Add(name);
         TypeCombo.SelectedIndex = 0;
         ViewModel.Data.DataChanged += Refresh;
@@ -40,7 +40,7 @@ public sealed partial class MeasurementsPage : Page
     {
         if (TypeCombo.SelectedIndex < 0 || ValueBox.Value <= 0) return;
 
-        var (name, unit) = Types[TypeCombo.SelectedIndex];
+        var (name, unit, _) = Types[TypeCombo.SelectedIndex];
         var measurement = new FPMeasurement
         {
             Id = Guid.NewGuid().ToString(),
@@ -64,10 +64,159 @@ public sealed partial class MeasurementsPage : Page
     private void Refresh()
     {
         var measurements = ViewModel.Data.Measurements;
-        HistoryList.Children.Clear();
-        EmptyHistory.Visibility = measurements.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        BuildOverview(measurements);
+        BuildHistory(measurements);
+        BuildWeightTrend(measurements);
+    }
 
-        foreach (var m in measurements)
+    private void BuildOverview(List<FPMeasurement> measurements)
+    {
+        OverviewGrid.Children.Clear();
+        OverviewGrid.RowDefinitions.Clear();
+        OverviewGrid.ColumnDefinitions.Clear();
+        OverviewGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        OverviewGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var row = 0;
+        var col = 0;
+        string? lastCategory = null;
+
+        foreach (var (name, unit, category) in Types)
+        {
+            if (category != lastCategory)
+            {
+                if (col != 0)
+                {
+                    row++;
+                    col = 0;
+                }
+
+                if (OverviewGrid.RowDefinitions.Count <= row)
+                    OverviewGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+                var header = new TextBlock
+                {
+                    Text = category.ToUpperInvariant(),
+                    FontSize = 11,
+                    FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                    Foreground = (Brush)Application.Current.Resources["AccentBrush"],
+                    CharacterSpacing = 120,
+                    Margin = new Thickness(0, row == 0 ? 0 : 8, 0, 4)
+                };
+                Grid.SetRow(header, row);
+                Grid.SetColumnSpan(header, 2);
+                OverviewGrid.Children.Add(header);
+                row++;
+                col = 0;
+                lastCategory = category;
+            }
+
+            if (OverviewGrid.RowDefinitions.Count <= row)
+                OverviewGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            var latest = measurements
+                .Where(m => m.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(m => m.Date)
+                .FirstOrDefault();
+
+            var hasValue = latest is not null;
+            var cell = BuildOverviewCell(name, unit, latest, hasValue, () => SelectType(name));
+            OverviewGrid.Children.Add(cell);
+            Grid.SetRow(cell, row);
+            Grid.SetColumn(cell, col);
+
+            col++;
+            if (col >= 2)
+            {
+                col = 0;
+                row++;
+            }
+        }
+    }
+
+    private static Button BuildOverviewCell(string name, string unit, FPMeasurement? latest, bool hasValue, Action onTap)
+    {
+        var valueBrush = hasValue
+            ? (Brush)Application.Current.Resources["AccentBrush"]!
+            : (Brush)Application.Current.Resources["TextTertiaryBrush"]!;
+
+        var valueText = new TextBlock
+        {
+            Text = hasValue ? $"{latest!.Value:0.#}" : "0",
+            FontSize = 26,
+            FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+            Foreground = valueBrush
+        };
+
+        var unitText = new TextBlock
+        {
+            Text = unit,
+            FontSize = 13,
+            Foreground = hasValue
+                ? (Brush)Application.Current.Resources["TextSecondaryBrush"]!
+                : (Brush)Application.Current.Resources["TextTertiaryBrush"]!,
+            Margin = new Thickness(4, 6, 0, 0)
+        };
+
+        var valueRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
+        valueRow.Children.Add(valueText);
+        valueRow.Children.Add(unitText);
+
+        var panel = new StackPanel { Spacing = 4 };
+        panel.Children.Add(new TextBlock
+        {
+            Text = name,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            FontSize = 14,
+            Foreground = (Brush)Application.Current.Resources["TextPrimaryBrush"]!
+        });
+        panel.Children.Add(valueRow);
+        panel.Children.Add(new TextBlock
+        {
+            Text = hasValue
+                ? $"Last: {latest!.Date.ToLocalTime():MMM d, yyyy}"
+                : "Not recorded",
+            Style = (Style)Application.Current.Resources["CaptionStyle"],
+            Foreground = hasValue
+                ? (Brush)Application.Current.Resources["TextSecondaryBrush"]!
+                : (Brush)Application.Current.Resources["TextTertiaryBrush"]!
+        });
+
+        var btn = new Button
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            Background = (Brush)Application.Current.Resources["SurfaceBrush"]!,
+            BorderBrush = (Brush)Application.Current.Resources["SurfaceHighlightBrush"]!,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(12),
+            Content = panel
+        };
+        btn.Click += (_, _) => onTap();
+        return btn;
+    }
+
+    private void SelectType(string name)
+    {
+        for (var i = 0; i < Types.Length; i++)
+        {
+            if (Types[i].Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            {
+                TypeCombo.SelectedIndex = i;
+                ValueBox.Focus(FocusState.Programmatic);
+                break;
+            }
+        }
+    }
+
+    private void BuildHistory(List<FPMeasurement> measurements)
+    {
+        HistoryList.Children.Clear();
+        var recent = measurements.OrderByDescending(m => m.Date).Take(20).ToList();
+        EmptyHistory.Visibility = recent.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        foreach (var m in recent)
         {
             var info = new StackPanel { Spacing = 4 };
             info.Children.Add(new TextBlock
@@ -107,8 +256,6 @@ public sealed partial class MeasurementsPage : Page
                 Child = grid
             });
         }
-
-        BuildWeightTrend(measurements);
     }
 
     private void BuildWeightTrend(List<FPMeasurement> measurements)

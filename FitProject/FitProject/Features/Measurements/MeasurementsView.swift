@@ -1,5 +1,32 @@
 import SwiftUI
 
+struct MeasurementTypeInfo: Identifiable {
+    let id: String
+    let name: String
+    let unit: String
+    let category: String
+}
+
+enum MeasurementCatalog {
+    static let types: [MeasurementTypeInfo] = [
+        .init(id: "weight", name: "Weight", unit: "kg", category: "Body Composition"),
+        .init(id: "bodyfat", name: "Body Fat", unit: "%", category: "Body Composition"),
+        .init(id: "chest", name: "Chest", unit: "cm", category: "Circumference"),
+        .init(id: "waist", name: "Waist", unit: "cm", category: "Circumference"),
+        .init(id: "hips", name: "Hips", unit: "cm", category: "Circumference"),
+        .init(id: "arms", name: "Arms", unit: "cm", category: "Circumference"),
+        .init(id: "thighs", name: "Thighs", unit: "cm", category: "Circumference"),
+    ]
+
+    static var categories: [String] {
+        Array(Set(types.map(\.category))).sorted()
+    }
+
+    static func types(in category: String) -> [MeasurementTypeInfo] {
+        types.filter { $0.category == category }
+    }
+}
+
 struct MeasurementsView: View {
     @EnvironmentObject var appState: AppState
     @State private var showAddSheet = false
@@ -7,25 +34,18 @@ struct MeasurementsView: View {
     @State private var newValue = ""
     @State private var newUnit = "kg"
 
-    private let defaultTypes = [
-        FPMeasurementType(id: "weight", name: "Weight", unit: "kg", isDefault: true),
-        FPMeasurementType(id: "bodyfat", name: "Body Fat", unit: "%", isDefault: true),
-        FPMeasurementType(id: "chest", name: "Chest", unit: "cm", isDefault: false),
-        FPMeasurementType(id: "waist", name: "Waist", unit: "cm", isDefault: false),
-        FPMeasurementType(id: "hips", name: "Hips", unit: "cm", isDefault: false),
-    ]
-
     var body: some View {
         ScrollView {
-            if appState.measurements.isEmpty {
-                emptyState
-            } else {
+            VStack(alignment: .leading, spacing: 20) {
+                overviewSection
                 chartSection
-                measurementsList
+                historySection
             }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 40)
         }
         .background(BWSTheme.background)
-        .navigationTitle("Measurements")
+        .navigationTitle("Body Measurements")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -42,33 +62,83 @@ struct MeasurementsView: View {
         }
     }
 
-    private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "ruler")
-                .font(.system(size: 48))
-                .foregroundStyle(BWSTheme.textTertiary)
-            Text("No measurements logged")
-                .font(BWSTheme.headlineFont)
+    private var overviewSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Current Measurements")
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(BWSTheme.textPrimary)
-            Text("Track weight, body composition, and custom metrics. Syncs with FitPros.io.")
+
+            Text("Tap a measurement to log a new entry.")
                 .font(BWSTheme.captionFont)
                 .foregroundStyle(BWSTheme.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
 
-            BWSPrimaryButton(title: "Log Measurement", icon: "plus") {
-                showAddSheet = true
+            ForEach(MeasurementCatalog.categories, id: \.self) { category in
+                Text(category.uppercased())
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(BWSTheme.accent)
+                    .tracking(1.2)
+                    .padding(.top, 4)
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    ForEach(MeasurementCatalog.types(in: category)) { type in
+                        overviewCell(for: type)
+                    }
+                }
             }
-            .padding(.horizontal, 40)
-            .padding(.top, 8)
         }
-        .padding(.top, 60)
+        .padding(.top, 8)
+    }
+
+    private func overviewCell(for type: MeasurementTypeInfo) -> some View {
+        let latest = latestMeasurement(named: type.name)
+        let hasValue = latest != nil
+
+        return Button {
+            newName = type.name
+            newUnit = type.unit
+            newValue = ""
+            showAddSheet = true
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(type.name)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(BWSTheme.textPrimary)
+
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text(hasValue ? formatValue(latest!.value) : "0")
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .foregroundStyle(hasValue ? BWSTheme.accent : BWSTheme.textTertiary)
+                    Text(type.unit)
+                        .font(BWSTheme.captionFont)
+                        .foregroundStyle(hasValue ? BWSTheme.textSecondary : BWSTheme.textTertiary)
+                }
+
+                Text(hasValue
+                     ? "Last: \(latest!.date.formatted(.dateTime.month(.abbreviated).day().year()))"
+                     : "Not recorded")
+                    .font(BWSTheme.captionFont)
+                    .foregroundStyle(hasValue ? BWSTheme.textSecondary : BWSTheme.textTertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(BWSTheme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(BWSTheme.surfaceHighlight, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private var chartSection: some View {
-        let weightLogs = appState.measurements.filter { $0.name.lowercased().contains("weight") }.prefix(10)
+        let weightLogs = appState.measurements
+            .filter { $0.name.lowercased().contains("weight") }
+            .sorted { $0.date < $1.date }
+            .suffix(10)
+
         return Group {
-            if !weightLogs.isEmpty {
+            if weightLogs.count >= 2 {
                 BWSCard {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Weight Trend")
@@ -76,7 +146,7 @@ struct MeasurementsView: View {
                             .foregroundStyle(BWSTheme.textPrimary)
 
                         HStack(alignment: .bottom, spacing: 6) {
-                            ForEach(Array(weightLogs.reversed()), id: \.id) { m in
+                            ForEach(Array(weightLogs), id: \.id) { m in
                                 let maxVal = weightLogs.map(\.value).max() ?? 1
                                 let minVal = weightLogs.map(\.value).min() ?? 0
                                 let range = max(maxVal - minVal, 1)
@@ -96,47 +166,55 @@ struct MeasurementsView: View {
                         .frame(height: 120)
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 8)
             }
         }
     }
 
-    private var measurementsList: some View {
-        LazyVStack(spacing: 12) {
-            ForEach(appState.measurements) { measurement in
-                BWSCard {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(measurement.name)
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(BWSTheme.textPrimary)
-                            Text(measurement.date.formatted(.dateTime.month(.wide).day().year()))
-                                .font(BWSTheme.captionFont)
-                                .foregroundStyle(BWSTheme.textSecondary)
-                        }
-                        Spacer()
-                        HStack(alignment: .firstTextBaseline, spacing: 2) {
-                            Text(String(format: "%.1f", measurement.value))
-                                .font(.system(size: 24, weight: .bold, design: .rounded))
-                                .foregroundStyle(BWSTheme.accent)
-                            Text(measurement.unit)
-                                .font(BWSTheme.captionFont)
-                                .foregroundStyle(BWSTheme.textSecondary)
+    private var historySection: some View {
+        let recent = appState.measurements.sorted { $0.date > $1.date }.prefix(20)
+
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("Recent History")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(BWSTheme.textPrimary)
+
+            if recent.isEmpty {
+                Text("No entries logged yet.")
+                    .font(BWSTheme.captionFont)
+                    .foregroundStyle(BWSTheme.textSecondary)
+            } else {
+                ForEach(Array(recent)) { measurement in
+                    BWSCard {
+                        HStack(alignment: .center) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(measurement.name)
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(BWSTheme.textPrimary)
+                                Text(measurement.date.formatted(.dateTime.month(.wide).day().year().hour().minute()))
+                                    .font(BWSTheme.captionFont)
+                                    .foregroundStyle(BWSTheme.textSecondary)
+                            }
+                            Spacer()
+                            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                Text(formatValue(measurement.value))
+                                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                                    .foregroundStyle(BWSTheme.accent)
+                                Text(measurement.unit)
+                                    .font(BWSTheme.captionFont)
+                                    .foregroundStyle(BWSTheme.textSecondary)
+                            }
                         }
                     }
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 40)
     }
 
     private var addMeasurementSheet: some View {
         NavigationStack {
             VStack(spacing: 20) {
                 Picker("Type", selection: $newName) {
-                    ForEach(defaultTypes) { type in
+                    ForEach(MeasurementCatalog.types) { type in
                         Text(type.name).tag(type.name)
                     }
                 }
@@ -151,7 +229,11 @@ struct MeasurementsView: View {
                     .background(BWSTheme.surface)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                BWSPrimaryButton(title: "Save") {
+                Text("Unit: \(newUnit)")
+                    .font(BWSTheme.captionFont)
+                    .foregroundStyle(BWSTheme.textSecondary)
+
+                BWSPrimaryButton(title: "Save Measurement") {
                     saveMeasurement()
                 }
                 .padding(.horizontal, 20)
@@ -169,10 +251,22 @@ struct MeasurementsView: View {
                 }
             }
             .onChange(of: newName) { _, name in
-                newUnit = defaultTypes.first { $0.name == name }?.unit ?? "kg"
+                newUnit = MeasurementCatalog.types.first { $0.name == name }?.unit ?? "kg"
             }
         }
         .presentationDetents([.medium])
+    }
+
+    private func latestMeasurement(named name: String) -> FPMeasurement? {
+        appState.measurements
+            .filter { $0.name.caseInsensitiveCompare(name) == .orderedSame }
+            .max(by: { $0.date < $1.date })
+    }
+
+    private func formatValue(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0
+            ? String(format: "%.0f", value)
+            : String(format: "%.1f", value)
     }
 
     private func saveMeasurement() {

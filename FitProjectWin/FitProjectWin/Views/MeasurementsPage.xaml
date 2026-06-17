@@ -9,9 +9,14 @@
             <Grid>
                 <Button Content="← Back" Click="Back_Click" HorizontalAlignment="Left"
                         Background="Transparent" Foreground="{StaticResource AccentBrush}" />
-                <TextBlock Text="Measurements" Style="{StaticResource HeadlineStyle}"
+                <TextBlock Text="Body Measurements" Style="{StaticResource HeadlineStyle}"
                            HorizontalAlignment="Center" />
             </Grid>
+
+            <TextBlock Text="Current Measurements" Style="{StaticResource SectionTitleStyle}" />
+            <TextBlock Text="Tap a measurement to log a new entry."
+                       Style="{StaticResource CaptionStyle}" Margin="0,-8,0,0" />
+            <Grid x:Name="OverviewGrid" ColumnSpacing="10" RowSpacing="10" />
 
             <Border Style="{StaticResource CardBorderStyle}">
                 <StackPanel Spacing="12">
@@ -43,9 +48,9 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Text="History" Style="{StaticResource SectionTitleStyle}" />
+            <TextBlock Text="Recent History" Style="{StaticResource SectionTitleStyle}" />
             <StackPanel x:Name="HistoryList" Spacing="8" />
-            <TextBlock x:Name="EmptyHistory" Text="No measurements logged yet. Record your first one above."
+            <TextBlock x:Name="EmptyHistory" Text="No entries logged yet."
                        Style="{StaticResource CaptionStyle}" TextWrapping="Wrap" Visibility="Collapsed" />
         </StackPanel>
     </ScrollViewer>

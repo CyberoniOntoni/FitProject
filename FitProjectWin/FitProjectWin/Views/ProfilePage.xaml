@@ -33,39 +33,61 @@
 
             <TextBlock Text="Track &amp; Record" Style="{StaticResource SectionTitleStyle}" />
 
-            <Button Click="OpenHabits_Click" HorizontalAlignment="Stretch"
-                    Background="{StaticResource SurfaceBrush}" Padding="16">
-                <Grid>
-                    <StackPanel Spacing="4" HorizontalAlignment="Left">
-                        <TextBlock Text="Habits" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock Style="{StaticResource CaptionStyle}">
-                            <Run Text="Record daily habits · " />
-                            <Run Text="{x:Bind ViewModel.Data.Habits.Count, Mode=OneWay}" />
-                            <Run Text=" active" />
-                        </TextBlock>
-                    </StackPanel>
-                    <FontIcon Glyph="&#xE892;" HorizontalAlignment="Right"
-                              Foreground="{StaticResource TextTertiaryBrush}" />
-                </Grid>
-            </Button>
+            <Border Style="{StaticResource CardBorderStyle}" Padding="0">
+                <Button Click="OpenHabits_Click" HorizontalAlignment="Stretch"
+                        Background="Transparent" BorderThickness="0" Padding="16">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon Grid.Column="0" Glyph="&#xE73E;" FontSize="18"
+                                  Foreground="{StaticResource AccentBrush}"
+                                  VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                            <TextBlock Text="Habits" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Style="{StaticResource CaptionStyle}">
+                                <Run Text="Record daily habits · " />
+                                <Run Text="{x:Bind ViewModel.Data.Habits.Count, Mode=OneWay}" />
+                                <Run Text=" active" />
+                            </TextBlock>
+                        </StackPanel>
+                        <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="14"
+                                  Foreground="{StaticResource TextTertiaryBrush}"
+                                  VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+            </Border>
 
-            <Button Click="OpenMeasurements_Click" HorizontalAlignment="Stretch"
-                    Background="{StaticResource SurfaceBrush}" Padding="16">
-                <Grid>
-                    <StackPanel Spacing="4" HorizontalAlignment="Left">
-                        <TextBlock Text="Body Measurements" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock Style="{StaticResource CaptionStyle}">
-                            <Run Text="Log weight, body comp &amp; more · " />
-                            <Run Text="{x:Bind ViewModel.Data.Measurements.Count, Mode=OneWay}" />
-                            <Run Text=" entries" />
-                        </TextBlock>
-                    </StackPanel>
-                    <FontIcon Glyph="&#xE892;" HorizontalAlignment="Right"
-                              Foreground="{StaticResource TextTertiaryBrush}" />
-                </Grid>
-            </Button>
+            <Border Style="{StaticResource CardBorderStyle}" Padding="0">
+                <Button Click="OpenMeasurements_Click" HorizontalAlignment="Stretch"
+                        Background="Transparent" BorderThickness="0" Padding="16">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon Grid.Column="0" Glyph="&#xE8AF;" FontSize="18"
+                                  Foreground="{StaticResource AccentBrush}"
+                                  VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                            <TextBlock Text="Body Measurements" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Style="{StaticResource CaptionStyle}">
+                                <Run Text="Weight, body comp &amp; more · " />
+                                <Run Text="{x:Bind ViewModel.Data.Measurements.Count, Mode=OneWay}" />
+                                <Run Text=" entries" />
+                            </TextBlock>
+                        </StackPanel>
+                        <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="14"
+                                  Foreground="{StaticResource TextTertiaryBrush}"
+                                  VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+            </Border>
 
             <Border Style="{StaticResource CardBorderStyle}">
                 <StackPanel Spacing="8">
