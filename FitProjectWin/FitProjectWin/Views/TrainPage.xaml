@@ -1,0 +1,112 @@
+<Page
+    x:Class="FitProjectWin.Views.TrainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{StaticResource BackgroundBrush}">
+
+    <ScrollViewer Padding="24,16,24,24">
+        <StackPanel Spacing="20">
+            <!-- Header -->
+            <StackPanel Spacing="4">
+                <TextBlock Text="{x:Bind ViewModel.Greeting, Mode=OneWay}" Style="{StaticResource HeadlineStyle}" />
+                <TextBlock Text="{x:Bind ViewModel.TodayDate, Mode=OneWay}" Style="{StaticResource CaptionStyle}" />
+            </StackPanel>
+
+            <!-- Weekly Progress -->
+            <Border Style="{StaticResource CardBorderStyle}">
+                <StackPanel Spacing="12">
+                    <Grid>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="This Week" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Style="{StaticResource CaptionStyle}">
+                                <Run Text="{x:Bind ViewModel.Data.WeeklyWorkoutsCompleted, Mode=OneWay}" />
+                                <Run Text=" of " />
+                                <Run Text="{x:Bind ViewModel.Data.WeeklyWorkoutGoal, Mode=OneWay}" />
+                                <Run Text=" workouts" />
+                            </TextBlock>
+                        </StackPanel>
+                        <ProgressRing Width="52" Height="52" HorizontalAlignment="Right"
+                                      Maximum="100"
+                                      Value="{x:Bind ViewModel.WeeklyProgressPercent, Mode=OneWay}"
+                                      Foreground="{StaticResource AccentBrush}" />
+                    </Grid>
+                    <ProgressBar Value="{x:Bind ViewModel.WeeklyProgress, Mode=OneWay}"
+                                 Maximum="1" Foreground="{StaticResource AccentBrush}"
+                                 Background="{StaticResource SurfaceHighlightBrush}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Continue Training -->
+            <Border Style="{StaticResource CardBorderStyle}"
+                    Visibility="{x:Bind ViewModel.Data.NextWorkout, Mode=OneWay, Converter={StaticResource NullToCollapsed}}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="CONTINUE TRAINING" FontSize="11" FontWeight="Bold"
+                               Foreground="{StaticResource AccentBrush}" CharacterSpacing="100" />
+                    <TextBlock Text="{x:Bind ViewModel.Data.NextWorkout.Name, Mode=OneWay}"
+                               Style="{StaticResource SectionTitleStyle}" />
+                    <TextBlock Text="{x:Bind ViewModel.Data.NextProgram.Title, Mode=OneWay}"
+                               Style="{StaticResource CaptionStyle}" />
+                    <Button Content="Start Workout" Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{x:Bind ViewModel.StartWorkoutCommand}"
+                            CommandParameter="{x:Bind ViewModel.Data.NextWorkout, Mode=OneWay}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Habits -->
+            <StackPanel Spacing="12"
+                        Visibility="{x:Bind ViewModel.Data.Habits.Count, Mode=OneWay, Converter={StaticResource CountToVisible}}">
+                <TextBlock Text="Habits" Style="{StaticResource SectionTitleStyle}" />
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Data.Habits, Mode=OneWay}">
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="models:FPHabit" xmlns:models="using:FitProjectWin.Models">
+                            <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,8">
+                                <Grid>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <TextBlock Text="{x:Bind ProgressText}" Style="{StaticResource CaptionStyle}" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                        <Button Content="−" Click="HabitMinus_Click" Tag="{x:Bind}" Width="36" Height="36"
+                                                Background="{StaticResource SurfaceHighlightBrush}" />
+                                        <TextBlock Text="{x:Bind CurrentValue, Converter={StaticResource DoubleFormat}}"
+                                                   FontSize="20" FontWeight="Bold" VerticalAlignment="Center"
+                                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <Button Content="+" Click="HabitPlus_Click" Tag="{x:Bind}" Width="36" Height="36"
+                                                Background="{StaticResource AccentBrush}" Foreground="White" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </StackPanel>
+
+            <!-- Programs preview -->
+            <StackPanel Spacing="12">
+                <TextBlock Text="Your Programs" Style="{StaticResource SectionTitleStyle}" />
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Data.Programs, Mode=OneWay}">
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="models:FPProgram" xmlns:models="using:FitProjectWin.Models">
+                            <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,8">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <TextBlock Style="{StaticResource CaptionStyle}">
+                                        <Run Text="{x:Bind TotalWeekCount}" />
+                                        <Run Text=" weeks · " />
+                                        <Run Text="{x:Bind TotalWorkoutCount}" />
+                                        <Run Text=" workouts" />
+                                    </TextBlock>
+                                    <ProgressBar Value="{x:Bind Progress}" Maximum="1"
+                                                 Foreground="{StaticResource AccentBrush}"
+                                                 Background="{StaticResource SurfaceHighlightBrush}" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

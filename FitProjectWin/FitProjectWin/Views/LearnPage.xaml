@@ -1,0 +1,13 @@
+<Page
+    x:Class="FitProjectWin.Views.LearnPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{StaticResource BackgroundBrush}">
+
+    <Grid>
+        <TextBlock Text="Learn" Style="{StaticResource HeadlineStyle}" Margin="24,16,24,8" VerticalAlignment="Top" />
+        <ScrollViewer Margin="0,64,0,0" Padding="24,0,24,24">
+            <StackPanel Spacing="12" x:Name="ContentList" />
+        </ScrollViewer>
+    </Grid>
+</Page>

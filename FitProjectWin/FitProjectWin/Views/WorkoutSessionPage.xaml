@@ -1,0 +1,78 @@
+<Page
+    x:Class="FitProjectWin.Views.WorkoutSessionPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{StaticResource BackgroundBrush}">
+
+    <Grid Padding="20" MaxWidth="500" HorizontalAlignment="Center">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Button Content="✕" Click="Close_Click" HorizontalAlignment="Left"
+                    Background="{StaticResource SurfaceBrush}" Width="36" Height="36" />
+            <StackPanel HorizontalAlignment="Center" Spacing="2">
+                <TextBlock x:Name="WorkoutTitle" Style="{StaticResource SectionTitleStyle}" TextAlignment="Center" />
+                <TextBlock x:Name="ElapsedText" Style="{StaticResource CaptionStyle}" TextAlignment="Center" />
+            </StackPanel>
+            <Button Content="Finish" Click="Finish_Click" HorizontalAlignment="Right"
+                    Foreground="{StaticResource AccentBrush}" Background="Transparent" />
+        </Grid>
+
+        <!-- Progress bar -->
+        <ProgressBar x:Name="ExerciseProgress" Grid.Row="1" Maximum="1" Height="3"
+                     Foreground="{StaticResource AccentBrush}"
+                     Background="{StaticResource SurfaceHighlightBrush}" Margin="0,0,0,16" />
+
+        <!-- Exercise content -->
+        <ScrollViewer Grid.Row="2">
+            <StackPanel Spacing="16" x:Name="ExercisePanel" />
+        </ScrollViewer>
+
+        <!-- Bottom nav -->
+        <Grid Grid.Row="3" ColumnSpacing="12" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="PrevBtn" Grid.Column="0" Content="‹" Click="Prev_Click"
+                    Width="48" Height="48" Background="{StaticResource SurfaceBrush}" />
+            <Button x:Name="NextBtn" Grid.Column="1" Content="Next Exercise" Click="Next_Click"
+                    Style="{StaticResource PrimaryButtonStyle}" />
+            <Button x:Name="SkipBtn" Grid.Column="2" Content="›" Click="Skip_Click"
+                    Width="48" Height="48" Background="{StaticResource SurfaceBrush}" />
+        </Grid>
+
+        <!-- Rest timer overlay -->
+        <Border x:Name="RestOverlay" Grid.RowSpan="4" Background="#99000000"
+                Visibility="Collapsed" VerticalAlignment="Bottom" Padding="20">
+            <Border Background="{StaticResource SurfaceElevatedBrush}" CornerRadius="12" Padding="24"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Margin="0,0,0,80">
+                <StackPanel Spacing="12" HorizontalAlignment="Center">
+                    <TextBlock Text="REST" FontSize="12" FontWeight="Bold"
+                               Foreground="{StaticResource TextSecondaryBrush}" CharacterSpacing="200"
+                               HorizontalAlignment="Center" />
+                    <TextBlock x:Name="RestTimerText" FontSize="48" FontWeight="Bold"
+                               Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Center">
+                        <Button Content="+30s" Click="AddRest_Click" Background="{StaticResource SurfaceHighlightBrush}" />
+                        <Button Content="Skip" Click="SkipRest_Click" Foreground="{StaticResource AccentBrush}" Background="Transparent" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- PR toast -->
+        <Border x:Name="PrToast" Grid.Row="0" Background="{StaticResource PrGoldBrush}"
+                CornerRadius="20" Padding="12,6" HorizontalAlignment="Center"
+                Visibility="Collapsed" Margin="0,48,0,0">
+            <TextBlock x:Name="PrToastText" FontWeight="Bold" Foreground="#333" />
+        </Border>
+    </Grid>
+</Page>

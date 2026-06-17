@@ -1,0 +1,113 @@
+import Foundation
+import FirebaseFirestore
+import Combine
+
+@MainActor
+final class SyncEngine: ObservableObject {
+    @Published var isSyncing = false
+    @Published var lastSyncDate: Date?
+    @Published var syncError: String?
+
+    private var listeners: [ListenerRegistration] = []
+    private let firestore = FirestoreService.shared
+
+    func startSync(userId: String, appState: AppState) {
+        stopSync()
+
+        let logsListener = firestore.listenToWorkoutLogs(userId: userId) { logs in
+            Task { @MainActor in
+                appState.workoutLogs = logs
+                appState.updateWeeklyProgress()
+            }
+        }
+        listeners.append(logsListener)
+
+        let habitsListener = firestore.listenToHabits(userId: userId) { habits in
+            Task { @MainActor in
+                appState.habits = habits
+            }
+        }
+        listeners.append(habitsListener)
+    }
+
+    func stopSync() {
+        listeners.forEach { $0.remove() }
+        listeners.removeAll()
+    }
+
+    func fullSync(userId: String, appState: AppState) async {
+        isSyncing = true
+        syncError = nil
+        defer {
+            isSyncing = false
+            lastSyncDate = Date()
+        }
+
+        do {
+            async let assignedPrograms = firestore.fetchAssignedPrograms(userId: userId)
+            async let creatorPrograms = firestore.fetchCreatorPrograms(userId: userId)
+            async let workoutLogs = firestore.fetchWorkoutLogs(userId: userId)
+            async let habits = firestore.fetchHabits(userId: userId)
+            async let measurements = firestore.fetchMeasurements(userId: userId)
+            async let content = firestore.fetchContent(userId: userId)
+            async let records = firestore.fetchPersonalRecords(userId: userId)
+            async let forms = firestore.fetchForms(userId: userId)
+
+            let (assigned, creator, logs, habitsResult, meas, cont, recs, formsResult) = try await (
+                assignedPrograms, creatorPrograms, workoutLogs, habits,
+                measurements, content, records, forms
+            )
+
+            var allPrograms: [FPProgram] = creator
+            for item in assigned {
+                if let program = item.program, !allPrograms.contains(where: { $0.id == program.id }) {
+                    var p = program
+                    p.completedWorkouts = item.completedWorkouts
+                    allPrograms.append(p)
+                }
+            }
+
+            var weeksByProgram: [String: [FPProgramWeek]] = [:]
+            for program in allPrograms {
+                weeksByProgram[program.id] = try await firestore.fetchProgramWeeks(programId: program.id)
+            }
+
+            appState.programs = allPrograms
+            appState.programWeeks = weeksByProgram
+            appState.assignedPrograms = assigned
+            appState.workoutLogs = logs
+            appState.habits = habitsResult
+            appState.measurements = meas
+            appState.content = cont
+            appState.personalRecords = recs
+            appState.forms = formsResult
+            appState.updateWeeklyProgress()
+            appState.selectNextWorkout()
+        } catch {
+            syncError = error.localizedDescription
+        }
+    }
+
+    func pushWorkoutLog(_ log: FPWorkoutLog) async throws {
+        try await firestore.saveWorkoutLog(log)
+    }
+
+    func pushHabitUpdate(habitId: String, userId: String, value: Double) async throws {
+        try await firestore.updateHabitValue(habitId: habitId, value: value)
+        try await firestore.saveHabitLog(FPHabitLog(
+            id: UUID().uuidString,
+            habitId: habitId,
+            userId: userId,
+            date: Date(),
+            value: value
+        ))
+    }
+
+    func pushMeasurement(_ measurement: FPMeasurement, userId: String) async throws {
+        try await firestore.saveMeasurement(measurement, userId: userId)
+    }
+
+    func pushPersonalRecord(_ record: FPPersonalRecord, userId: String) async throws {
+        try await firestore.savePersonalRecord(record, userId: userId)
+    }
+}

@@ -1,0 +1,55 @@
+# Shell & system
+.bash_history
+.bashrc
+.bashrc.*
+.profile
+.wget-hsts
+.config/
+.ssh/
+
+# Grok / tool caches (may contain auth tokens)
+.grok/
+.install-*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.Python
+venv/
+.venv/
+.env
+.env.*
+
+# Scripts with embedded credentials
+create_manus_program.py
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build outputs
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+*.user
+*.suo
+*.cache
+
+# Xcode
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+
+# NuGet / .NET
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Misc
+*.log
+*.tmp
+*~
