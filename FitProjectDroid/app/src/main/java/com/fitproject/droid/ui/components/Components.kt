@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,7 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -35,10 +36,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fitproject.droid.ui.theme.BWSColors
+import com.fitproject.droid.ui.theme.BWSTypography
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 
 @Composable
 fun BWSCard(
@@ -48,16 +47,52 @@ fun BWSCard(
 ) {
     Box(
         modifier = modifier
+            .shadow(
+                elevation = 1.dp,
+                shape = RoundedCornerShape(BWSColors.CardRadius.dp),
+                ambientColor = Color.Black.copy(alpha = 0.04f),
+                spotColor = Color.Black.copy(alpha = 0.08f)
+            )
             .clip(RoundedCornerShape(BWSColors.CardRadius.dp))
             .background(BWSColors.Surface)
             .border(
-                width = 1.dp,
-                color = Color.White.copy(alpha = 0.06f),
+                width = 0.5.dp,
+                color = BWSColors.Separator,
                 shape = RoundedCornerShape(BWSColors.CardRadius.dp)
             )
             .padding(padding)
     ) {
         content()
+    }
+}
+
+@Composable
+fun AppleGroupedSection(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(BWSColors.CardRadius.dp))
+            .background(BWSColors.Surface)
+            .border(0.5.dp, BWSColors.Separator, RoundedCornerShape(BWSColors.CardRadius.dp))
+    ) {
+        content()
+    }
+}
+
+@Composable
+fun ScreenHeader(
+    title: String,
+    subtitle: String? = null,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(title, style = BWSTypography.LargeTitle, color = BWSColors.TextPrimary)
+        subtitle?.let {
+            Text(it, style = BWSTypography.Body, color = BWSColors.TextSecondary)
+        }
     }
 }
 
@@ -71,9 +106,7 @@ fun ProgressRing(
 ) {
     val clampedProgress = progress.coerceIn(0.0, 1.0)
     val trackColor = BWSColors.SurfaceHighlight
-    val gradientBrush = Brush.sweepGradient(
-        colors = listOf(Color(0xFF00C9B7), Color(0xFF3B82F6), Color(0xFF00C9B7))
-    )
+    val progressColor = BWSColors.Accent
 
     Box(
         modifier = modifier.size(size),
@@ -81,8 +114,11 @@ fun ProgressRing(
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val stroke = Stroke(width = lineWidth.toPx(), cap = StrokeCap.Round)
-            val arcSize = Size(this.size.width - lineWidth.toPx(), this.size.height - lineWidth.toPx())
-            val topLeft = Offset(lineWidth.toPx() / 2, lineWidth.toPx() / 2)
+            val arcSize = androidx.compose.ui.geometry.Size(
+                this.size.width - lineWidth.toPx(),
+                this.size.height - lineWidth.toPx()
+            )
+            val topLeft = androidx.compose.ui.geometry.Offset(lineWidth.toPx() / 2, lineWidth.toPx() / 2)
 
             drawArc(
                 color = trackColor,
@@ -95,7 +131,7 @@ fun ProgressRing(
             )
 
             drawArc(
-                brush = gradientBrush,
+                color = progressColor,
                 startAngle = -90f,
                 sweepAngle = (clampedProgress * 360).toFloat(),
                 useCenter = false,
@@ -128,15 +164,17 @@ fun BWSPrimaryButton(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .height(50.dp)
             .clip(RoundedCornerShape(BWSColors.ButtonRadius.dp))
-            .background(BWSColors.AccentGradient)
-            .clickable(enabled = enabled && !isLoading, onClick = onClick)
-            .padding(vertical = 16.dp),
+            .background(
+                if (enabled) BWSColors.Accent else BWSColors.Accent.copy(alpha = 0.4f)
+            )
+            .clickable(enabled = enabled && !isLoading, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         if (isLoading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(22.dp),
                 color = Color.White,
                 strokeWidth = 2.dp
             )
@@ -156,12 +194,30 @@ fun BWSPrimaryButton(
                 }
                 Text(
                     text = title,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    style = BWSTypography.Headline,
                     color = Color.White
                 )
             }
         }
+    }
+}
+
+@Composable
+fun BWSSecondaryButton(
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .clip(RoundedCornerShape(BWSColors.ButtonRadius.dp))
+            .background(BWSColors.Fill)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(title, style = BWSTypography.Headline, color = BWSColors.Accent)
     }
 }
 
@@ -177,7 +233,7 @@ fun ProfileMenuRow(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -190,14 +246,12 @@ fun ProfileMenuRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
+                style = BWSTypography.Headline,
                 color = BWSColors.TextPrimary
             )
             Text(
                 text = subtitle,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
+                style = BWSTypography.Caption,
                 color = BWSColors.TextSecondary
             )
         }
@@ -212,8 +266,9 @@ fun ProfileMenuRow(
 @Composable
 fun ProfileMenuDivider(modifier: Modifier = Modifier) {
     HorizontalDivider(
-        modifier = modifier.padding(start = 52.dp),
-        color = BWSColors.SurfaceHighlight
+        modifier = modifier.padding(start = 56.dp),
+        thickness = 0.5.dp,
+        color = BWSColors.Separator
     )
 }
 
@@ -235,7 +290,7 @@ fun WeekProgressDots(
                     Box(
                         modifier = Modifier
                             .size(14.dp)
-                            .border(2.dp, BWSColors.Accent.copy(alpha = 0.5f), CircleShape)
+                            .border(2.dp, BWSColors.Accent.copy(alpha = 0.4f), CircleShape)
                     )
                 }
                 Box(
@@ -256,16 +311,16 @@ fun PRBadge(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(50))
-            .background(BWSColors.PrGold.copy(alpha = 0.15f))
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .background(BWSColors.Warning.copy(alpha = 0.12f))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
-            text = "🏆 New PR!",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = BWSColors.PrGold
+            text = "New Personal Record",
+            style = BWSTypography.Caption,
+            fontWeight = FontWeight.SemiBold,
+            color = BWSColors.Warning
         )
     }
 }

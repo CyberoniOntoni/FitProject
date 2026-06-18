@@ -35,6 +35,7 @@ import com.fitproject.droid.data.FPWorkout
 import com.fitproject.droid.ui.components.BWSCard
 import com.fitproject.droid.ui.components.BWSPrimaryButton
 import com.fitproject.droid.ui.components.ProgressRing
+import com.fitproject.droid.ui.components.ScreenHeader
 import com.fitproject.droid.ui.components.WeekProgressDots
 import com.fitproject.droid.ui.theme.BWSColors
 import com.fitproject.droid.ui.theme.BWSTypography
@@ -63,14 +64,10 @@ fun TrainScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("$greeting,", style = BWSTypography.Title, color = BWSColors.TextPrimary)
-            Text(
-                text = userFirstName.ifEmpty { "Athlete" },
-                style = BWSTypography.Title,
-                color = BWSColors.Accent
-            )
-        }
+        ScreenHeader(
+            title = "$greeting, ${userFirstName.ifEmpty { "Athlete" }}",
+            subtitle = "Ready to train?"
+        )
 
         BWSCard {
             Row(

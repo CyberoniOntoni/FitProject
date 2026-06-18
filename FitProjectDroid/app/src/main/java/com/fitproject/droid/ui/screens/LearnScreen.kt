@@ -54,10 +54,9 @@ fun LearnScreen(
             .padding(bottom = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            "Learn",
-            style = BWSTypography.Title,
-            color = BWSColors.TextPrimary,
+        com.fitproject.droid.ui.components.ScreenHeader(
+            title = "Learn",
+            subtitle = "Forms and coaching content",
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
         )
 

@@ -40,9 +40,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.fitproject.droid.data.FPUser
+import com.fitproject.droid.ui.components.AppleGroupedSection
 import com.fitproject.droid.ui.components.BWSCard
 import com.fitproject.droid.ui.components.ProfileMenuDivider
 import com.fitproject.droid.ui.components.ProfileMenuRow
+
 import com.fitproject.droid.ui.navigation.ProfileDestination
 import com.fitproject.droid.ui.theme.BWSColors
 import com.fitproject.droid.ui.theme.BWSTypography
@@ -86,17 +88,12 @@ fun ProfileScreen(
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                "Track & Record",
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = BWSColors.TextPrimary
+                "TRACK & RECORD",
+                style = BWSTypography.Footnote,
+                color = BWSColors.TextSecondary,
+                modifier = Modifier.padding(start = 4.dp)
             )
-            Column(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(BWSColors.CardRadius.dp))
-                    .background(BWSColors.Surface)
-                    .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(BWSColors.CardRadius.dp))
-            ) {
+            AppleGroupedSection {
                 ProfileMenuRow(
                     icon = Icons.Default.TaskAlt,
                     title = "Habits",
@@ -136,17 +133,12 @@ fun ProfileScreen(
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                "Settings",
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = BWSColors.TextPrimary
+                "SETTINGS",
+                style = BWSTypography.Footnote,
+                color = BWSColors.TextSecondary,
+                modifier = Modifier.padding(start = 4.dp)
             )
-            Column(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(BWSColors.CardRadius.dp))
-                    .background(BWSColors.Surface)
-                    .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(BWSColors.CardRadius.dp))
-            ) {
+            AppleGroupedSection {
                 ProfileMenuRow(
                     icon = Icons.Default.Settings,
                     title = "Unit Preferences",
@@ -156,19 +148,18 @@ fun ProfileScreen(
             }
         }
 
-        Text(
-            text = "Sign Out",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = BWSColors.Error,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(BWSColors.ButtonRadius.dp))
-                .background(BWSColors.Surface)
-                .clickable(onClick = onSignOut)
-                .padding(vertical = 14.dp),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
+        AppleGroupedSection {
+            Text(
+                text = "Sign Out",
+                style = BWSTypography.Headline,
+                color = BWSColors.Error,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onSignOut)
+                    .padding(vertical = 14.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
     }

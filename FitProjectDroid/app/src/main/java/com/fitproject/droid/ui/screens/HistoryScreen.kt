@@ -63,10 +63,9 @@ fun HistoryScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 20.dp)
         ) {
-            Text(
-                "History",
-                style = BWSTypography.Title,
-                color = BWSColors.TextPrimary,
+            com.fitproject.droid.ui.components.ScreenHeader(
+                title = "History",
+                subtitle = "Workouts and personal records",
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
             )
 

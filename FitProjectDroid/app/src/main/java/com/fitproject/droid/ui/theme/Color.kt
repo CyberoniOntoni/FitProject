@@ -3,37 +3,39 @@ package com.fitproject.droid.ui.theme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-// BWS+-inspired dark palette with FitPros integration accents
+/** Apple Human Interface Guidelines — light mode palette */
 object BWSColors {
-    val Background = Color(0xFF0D0D0F)
-    val Surface = Color(0xFF1A1A1E)
-    val SurfaceElevated = Color(0xFF242428)
-    val SurfaceHighlight = Color(0xFF2E2E34)
+    val Background = Color(0xFFF2F2F7)
+    val Surface = Color.White
+    val SurfaceElevated = Color.White
+    val SurfaceHighlight = Color(0xFFE5E5EA)
+    val Separator = Color(0xFF3C3C43).copy(alpha = 0.12f)
+    val Fill = Color(0xFF787880).copy(alpha = 0.12f)
 
-    val Accent = Color(0xFF00C9B7)
-    val AccentSecondary = Color(0xFF3B82F6)
+    val Accent = Color(0xFF007AFF)
+    val AccentSecondary = Color(0xFF5856D6)
     val AccentGradient = Brush.horizontalGradient(
-        colors = listOf(Color(0xFF00C9B7), Color(0xFF3B82F6))
+        colors = listOf(Color(0xFF007AFF), Color(0xFF0056CC))
     )
 
-    val TextPrimary = Color.White
-    val TextSecondary = Color(0xFFA0A0A8)
-    val TextTertiary = Color(0xFF6B6B73)
+    val TextPrimary = Color(0xFF000000)
+    val TextSecondary = Color(0xFF3C3C43).copy(alpha = 0.6f)
+    val TextTertiary = Color(0xFF3C3C43).copy(alpha = 0.3f)
 
-    val Success = Color(0xFF34D399)
-    val Warning = Color(0xFFFBBF24)
-    val Error = Color(0xFFF87171)
-    val PrGold = Color(0xFFFFD700)
+    val Success = Color(0xFF34C759)
+    val Warning = Color(0xFFFF9500)
+    val Error = Color(0xFFFF3B30)
+    val PrGold = Color(0xFFFF9500)
 
-    // Metric colors (FitPros standard)
-    val RepsColor = Color(0xFF513BD1)
-    val WeightColor = Color(0xFFFC4747)
-    val RestColor = Color(0xFF4BD685)
-    val RpeColor = Color(0xFFF5A623)
-    val TempoColor = Color(0xFF9B59B6)
-    val TimeColor = Color(0xFF3B86D1)
+    // Metric colors — softened for light backgrounds
+    val RepsColor = Color(0xFF5856D6)
+    val WeightColor = Color(0xFFFF3B30)
+    val RestColor = Color(0xFF34C759)
+    val RpeColor = Color(0xFFFF9500)
+    val TempoColor = Color(0xFFAF52DE)
+    val TimeColor = Color(0xFF007AFF)
 
-    val CardRadius = 16f
+    val CardRadius = 12f
     val ButtonRadius = 12f
     val TabBarHeight = 84f
 }

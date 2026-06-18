@@ -63,7 +63,10 @@ fun ProgramsScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Programs", style = BWSTypography.Title, color = BWSColors.TextPrimary)
+        com.fitproject.droid.ui.components.ScreenHeader(
+            title = "Programs",
+            subtitle = "Assigned from FitPros"
+        )
 
         if (programs.isEmpty()) {
             ProgramsEmptyState()

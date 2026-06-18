@@ -65,7 +65,9 @@ import androidx.navigation.compose.rememberNavController
 import com.fitproject.droid.data.AppTab
 import com.fitproject.droid.data.FPContent
 import com.fitproject.droid.data.FPForm
+import com.fitproject.droid.ui.components.AppleGroupedSection
 import com.fitproject.droid.ui.components.BWSPrimaryButton
+import com.fitproject.droid.ui.components.ScreenHeader
 import com.fitproject.droid.ui.screens.FormFillScreen
 import com.fitproject.droid.ui.navigation.ProfileNavHost
 import com.fitproject.droid.ui.screens.ContentDetailScreen
@@ -191,101 +193,87 @@ fun LoginScreen(appViewModel: AppViewModel) {
     val authLoading by appViewModel.authLoading.collectAsStateWithLifecycle()
     val authError by appViewModel.authError.collectAsStateWithLifecycle()
 
-    Box(
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = BWSColors.TextPrimary,
+        unfocusedTextColor = BWSColors.TextPrimary,
+        focusedContainerColor = Color.Transparent,
+        unfocusedContainerColor = Color.Transparent,
+        focusedBorderColor = Color.Transparent,
+        unfocusedBorderColor = Color.Transparent,
+        cursorColor = BWSColors.Accent,
+        focusedLabelColor = BWSColors.TextSecondary,
+        unfocusedLabelColor = BWSColors.TextTertiary
+    )
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BWSColors.Background)
-            .padding(24.dp)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(32.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.FitnessCenter,
-                contentDescription = null,
-                tint = BWSColors.Accent,
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "FitProjectDroid",
-                style = BWSTypography.Title,
-                color = BWSColors.TextPrimary
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Science-backed training.\nSynced with FitPros.",
-                style = BWSTypography.Body,
-                color = BWSColors.TextSecondary,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(48.dp))
+        ScreenHeader(
+            title = "FitProject",
+            subtitle = "Science-backed training, synced with FitPros.",
+            modifier = Modifier.padding(top = 48.dp)
+        )
 
-            val fieldColors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = BWSColors.TextPrimary,
-                unfocusedTextColor = BWSColors.TextPrimary,
-                focusedContainerColor = BWSColors.Surface,
-                unfocusedContainerColor = BWSColors.Surface,
-                focusedBorderColor = BWSColors.Accent.copy(alpha = 0.5f),
-                unfocusedBorderColor = BWSColors.SurfaceHighlight,
-                cursorColor = BWSColors.Accent
-            )
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(BWSColors.ButtonRadius.dp),
-                colors = fieldColors
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                singleLine = true,
-                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                trailingIcon = {
-                    IconButton(onClick = { showPassword = !showPassword }) {
-                        Icon(
-                            imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = null,
-                            tint = BWSColors.TextTertiary
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(BWSColors.ButtonRadius.dp),
-                colors = fieldColors
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            AppleGroupedSection {
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(0.dp),
+                    colors = fieldColors
+                )
+                HorizontalDivider(thickness = 0.5.dp, color = BWSColors.Separator)
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    singleLine = true,
+                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(
+                                imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = null,
+                                tint = BWSColors.TextTertiary
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(0.dp),
+                    colors = fieldColors
+                )
+            }
 
             authError?.let { error ->
-                Spacer(modifier = Modifier.height(8.dp))
                 Text(text = error, style = BWSTypography.Caption, color = BWSColors.Error)
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
             BWSPrimaryButton(
                 title = "Sign In",
                 isLoading = authLoading,
                 onClick = { appViewModel.signIn(email, password) }
             )
-
-            Spacer(modifier = Modifier.height(32.dp))
-            Text(
-                text = "Syncs seamlessly with FitPros.io",
-                style = BWSTypography.Caption,
-                color = BWSColors.TextTertiary
-            )
         }
+
+        Text(
+            text = "Powered by FitPros.io",
+            style = BWSTypography.Footnote,
+            color = BWSColors.TextTertiary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -319,12 +307,12 @@ fun MainShell(appViewModel: AppViewModel) {
             containerColor = BWSColors.Background,
             bottomBar = {
                 Column {
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.06f))
+                    HorizontalDivider(thickness = 0.5.dp, color = BWSColors.Separator)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(BWSColors.SurfaceElevated)
-                            .padding(top = 10.dp, bottom = 24.dp)
+                            .padding(top = 8.dp, bottom = 28.dp)
                     ) {
                         TabBarItem(
                             icon = Icons.Default.FitnessCenter,
@@ -446,7 +434,16 @@ fun MainShell(appViewModel: AppViewModel) {
                 onDismissRequest = { appViewModel.setShowProfileSheet(false) },
                 sheetState = sheetState,
                 containerColor = BWSColors.Background,
-                dragHandle = null
+                tonalElevation = 0.dp,
+                dragHandle = {
+                    Box(
+                        modifier = Modifier
+                            .padding(vertical = 8.dp)
+                            .size(width = 36.dp, height = 5.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(BWSColors.SurfaceHighlight)
+                    )
+                }
             ) {
                 Box(
                     modifier = Modifier
@@ -492,6 +489,7 @@ private fun TabBarItem(
         Text(
             text = label,
             fontSize = 10.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             color = if (selected) BWSColors.Accent else BWSColors.TextTertiary
         )
     }

@@ -269,7 +269,7 @@ private fun OverviewCell(
     }
 }
 
-private val BodyweightChartColor = Color(0xFFc93477)
+private val BodyweightChartColor = BWSColors.Accent
 
 @Composable
 private fun WeightTrendChart(
@@ -421,7 +421,7 @@ private fun WeightTrendChart(
                     return Offset(x, y)
                 }
 
-                val gridColor = Color.White.copy(alpha = 0.06f)
+                val gridColor = BWSColors.Separator
                 for (i in 0..3) {
                     val y = topPad + chartHeightInner * i / 3f
                     drawLine(
@@ -469,7 +469,7 @@ private fun WeightTrendChart(
                 }
                 drawPath(
                     path = linePath,
-                    color = Color.White.copy(alpha = 0.12f),
+                    color = BWSColors.Accent.copy(alpha = 0.15f),
                     style = Stroke(width = 5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
                 )
                 drawPath(
@@ -493,7 +493,7 @@ private fun WeightTrendChart(
                     }
                     drawPath(
                         path = futurePath,
-                        color = Color.White.copy(alpha = 0.1f),
+                        color = BWSColors.TextTertiary.copy(alpha = 0.4f),
                         style = Stroke(width = 3f, cap = StrokeCap.Round, join = StrokeJoin.Round)
                     )
                 }
@@ -549,7 +549,7 @@ private fun WeightTrendChart(
                         center = point
                     )
                     drawCircle(
-                        color = Color.White.copy(alpha = if (isSelected) 0.95f else 0.7f),
+                        color = BWSColors.Surface,
                         radius = radius * 0.45f,
                         center = point
                     )
