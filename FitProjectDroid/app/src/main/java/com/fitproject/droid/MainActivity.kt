@@ -1,8 +1,9 @@
 package com.fitproject.droid
 
 import android.Manifest
-import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -68,7 +69,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.fitproject.droid.data.fitness.HealthConnectRepository
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -96,18 +97,6 @@ import com.fitproject.droid.viewmodel.AppViewModel
 import com.fitproject.droid.viewmodel.ThemeViewModel
 
 class MainActivity : ComponentActivity() {
-
-    var onGoogleFitPermissionResult: ((Boolean) -> Unit)? = null
-
-    @Deprecated("Deprecated in Java")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
-        @Suppress("DEPRECATION")
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == GOOGLE_FIT_PERMISSION_REQUEST) {
-            onGoogleFitPermissionResult?.invoke(resultCode == Activity.RESULT_OK)
-            onGoogleFitPermissionResult = null
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -337,16 +326,23 @@ fun MainShell(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
 
+    val healthConnectLauncher = rememberLauncherForActivityResult(
+        contract = HealthConnectRepository.permissionContract()
+    ) { granted ->
+        if (granted.containsAll(appViewModel.healthConnectPermissions)) {
+            appViewModel.onHealthConnectPermissionsGranted()
+        }
+    }
+
     val activityRecognitionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            val activity = context as? MainActivity ?: return@rememberLauncherForActivityResult
-            requestGoogleFitPermissions(activity, appViewModel)
+            healthConnectLauncher.launch(appViewModel.healthConnectPermissions)
         }
     }
 
-    fun connectGoogleFit() {
+    fun connectActivityData() {
         val activity = context as? MainActivity ?: return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val granted = ContextCompat.checkSelfPermission(
@@ -358,7 +354,17 @@ fun MainShell(
                 return
             }
         }
-        requestGoogleFitPermissions(activity, appViewModel)
+        healthConnectLauncher.launch(appViewModel.healthConnectPermissions)
+    }
+
+    fun openHealthConnectInstall() {
+        val activity = context as? MainActivity ?: return
+        activity.startActivity(
+            Intent(Intent.ACTION_VIEW).apply {
+                data = Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata")
+                setPackage("com.android.vending")
+            }
+        )
     }
 
     LaunchedEffect(selectedTab) {
@@ -438,7 +444,8 @@ fun MainShell(
                         habits = habits,
                         userFirstName = currentUser?.firstName ?: "",
                         onRefreshActivity = appViewModel::refreshActivityMetrics,
-                        onConnectGoogleFit = { connectGoogleFit() },
+                        onConnectActivity = { connectActivityData() },
+                        onInstallHealthConnect = { openHealthConnectInstall() },
                         onUpdateHabit = appViewModel::updateHabit,
                         onSeeAllHabits = appViewModel::openHabitsFromSummary
                     )
@@ -543,29 +550,6 @@ fun MainShell(
                 }
             }
         }
-    }
-}
-
-private const val GOOGLE_FIT_PERMISSION_REQUEST = 9001
-
-private fun requestGoogleFitPermissions(
-    activity: MainActivity,
-    appViewModel: AppViewModel
-) {
-    val options = appViewModel.googleFitFitnessOptions
-    val account = GoogleSignIn.getAccountForExtension(activity, options)
-    if (!GoogleSignIn.hasPermissions(account, options)) {
-        activity.onGoogleFitPermissionResult = { granted ->
-            if (granted) appViewModel.onGoogleFitPermissionsGranted()
-        }
-        GoogleSignIn.requestPermissions(
-            activity,
-            GOOGLE_FIT_PERMISSION_REQUEST,
-            account,
-            options
-        )
-    } else {
-        appViewModel.refreshActivityMetrics()
     }
 }
 

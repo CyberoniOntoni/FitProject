@@ -46,7 +46,8 @@ fun SummaryScreen(
     habits: List<FPHabit>,
     userFirstName: String,
     onRefreshActivity: () -> Unit,
-    onConnectGoogleFit: () -> Unit,
+    onConnectActivity: () -> Unit,
+    onInstallHealthConnect: () -> Unit,
     onUpdateHabit: (FPHabit, Double) -> Unit,
     onSeeAllHabits: () -> Unit,
     modifier: Modifier = Modifier
@@ -69,7 +70,8 @@ fun SummaryScreen(
             metrics = activityMetrics,
             distanceUnit = distanceUnit,
             onRefresh = onRefreshActivity,
-            onConnectGoogleFit = onConnectGoogleFit
+            onConnectActivity = onConnectActivity,
+            onInstallHealthConnect = onInstallHealthConnect
         )
 
         if (habits.isNotEmpty()) {
@@ -111,7 +113,8 @@ private fun ActivityMetricsSection(
     metrics: DailyActivityMetrics,
     distanceUnit: String,
     onRefresh: () -> Unit,
-    onConnectGoogleFit: () -> Unit
+    onConnectActivity: () -> Unit,
+    onInstallHealthConnect: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -126,29 +129,49 @@ private fun ActivityMetricsSection(
             )
             if (metrics.isConnected) {
                 Text(
-                    "Google Fit",
+                    "Health Connect",
                     style = BWSTypography.Caption,
                     color = BWSColors.Success
                 )
             }
         }
 
-        if (metrics.needsPermission) {
+        if (metrics.needsInstall) {
             BWSCard {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        "Connect Google Fit",
+                        "Install Health Connect",
                         style = BWSTypography.Headline,
                         color = BWSColors.TextPrimary
                     )
                     Text(
-                        "Sync your daily steps and walking distance from Google Fit.",
+                        metrics.errorMessage
+                            ?: "Install Health Connect to sync steps and distance. Connect Google Fit inside Health Connect to include Fit data.",
                         style = BWSTypography.Body,
                         color = BWSColors.TextSecondary
                     )
                     BWSPrimaryButton(
-                        title = "Connect Google Fit",
-                        onClick = onConnectGoogleFit
+                        title = "Get Health Connect",
+                        onClick = onInstallHealthConnect
+                    )
+                }
+            }
+        } else if (metrics.needsPermission) {
+            BWSCard {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "Connect Activity Data",
+                        style = BWSTypography.Headline,
+                        color = BWSColors.TextPrimary
+                    )
+                    Text(
+                        "Allow access to steps and distance through Health Connect. If Google Fit is linked in Health Connect, your Fit activity syncs automatically.",
+                        style = BWSTypography.Body,
+                        color = BWSColors.TextSecondary
+                    )
+                    BWSPrimaryButton(
+                        title = "Connect Health Connect",
+                        onClick = onConnectActivity
                     )
                 }
             }

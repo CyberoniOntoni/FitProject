@@ -26,7 +26,7 @@ import com.fitproject.droid.data.SyncEngine
 import com.fitproject.droid.data.SyncStateCallbacks
 import com.fitproject.droid.data.WorkoutSessionState
 import com.fitproject.droid.data.fitness.DailyActivityMetrics
-import com.fitproject.droid.data.fitness.GoogleFitRepository
+import com.fitproject.droid.data.fitness.HealthConnectRepository
 import com.fitproject.droid.data.onboarding.GeneratedExercisePlan
 import com.fitproject.droid.data.onboarding.OnboardingPlanConverter
 import com.fitproject.droid.data.onboarding.OnboardingRepository
@@ -50,7 +50,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private val syncEngine = SyncEngine()
     private val onboardingRepository = OnboardingRepository(application)
-    private val googleFitRepository = GoogleFitRepository(application)
+    private val healthConnectRepository = HealthConnectRepository(application)
 
     // Navigation & tabs
     private val _selectedTab = MutableStateFlow(AppTab.SUMMARY)
@@ -140,7 +140,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
     private val _activityMetrics = MutableStateFlow(DailyActivityMetrics())
     val activityMetrics: StateFlow<DailyActivityMetrics> = _activityMetrics.asStateFlow()
 
-    val googleFitFitnessOptions get() = googleFitRepository.fitnessOptions
+    val healthConnectPermissions: Set<String> get() = healthConnectRepository.requiredPermissions
 
     // Onboarding (experimental)
     private val _needsOnboarding = MutableStateFlow(false)
@@ -193,12 +193,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
     fun refreshActivityMetrics() {
         viewModelScope.launch {
             _activityMetrics.update { it.copy(isLoading = true, errorMessage = null) }
-            val metrics = googleFitRepository.readTodayMetrics(_unitPreferences.value.distance)
+            val metrics = healthConnectRepository.readTodayMetrics(_unitPreferences.value.distance)
             _activityMetrics.value = metrics.copy(isLoading = false)
         }
     }
 
-    fun onGoogleFitPermissionsGranted() {
+    fun onHealthConnectPermissionsGranted() {
         refreshActivityMetrics()
     }
 

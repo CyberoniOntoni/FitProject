@@ -7,6 +7,7 @@ data class DailyActivityMetrics(
     val distanceGoalMeters: Double = 8046.72,
     val isConnected: Boolean = false,
     val needsPermission: Boolean = false,
+    val needsInstall: Boolean = false,
     val isLoading: Boolean = false,
     val lastSyncedAt: Long? = null,
     val errorMessage: String? = null
