@@ -3,7 +3,6 @@ package com.fitproject.droid.data
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.CoroutineScope
@@ -48,14 +47,33 @@ class FirestoreService private constructor() {
     // MARK: - Programs
 
     suspend fun fetchAssignedPrograms(userId: String): List<FPAssignedProgram> {
-        try {
-            val snapshot = db.collection("assignedPrograms")
+        val fromUserIds = runCatching {
+            db.collection("programs")
+                .whereArrayContains("userIds", userId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { doc ->
+                    val program = parseProgram(doc) ?: return@mapNotNull null
+                    FPAssignedProgram(
+                        id = "assigned-${doc.id}",
+                        programId = doc.id,
+                        userId = userId,
+                        coachId = program.creatorIds.firstOrNull(),
+                        program = program
+                    )
+                }
+        }.getOrElse { emptyList() }
+
+        if (fromUserIds.isNotEmpty()) return fromUserIds
+
+        return runCatching {
+            db.collection("assignedPrograms")
                 .whereEqualTo("userId", userId)
                 .get()
                 .await()
-
-            if (!snapshot.isEmpty) {
-                return snapshot.documents.mapNotNull { doc ->
+                .documents
+                .mapNotNull { doc ->
                     val data = doc.data ?: return@mapNotNull null
                     val programId = data["programId"] as? String ?: ""
                     var item = FPAssignedProgram(
@@ -72,70 +90,56 @@ class FirestoreService private constructor() {
                     }
                     item
                 }
-            }
-        } catch (_: Exception) {
-            // assignedPrograms may be restricted; fall back to programs.userIds
-        }
-
-        val snapshot = db.collection("programs")
-            .whereArrayContains("userIds", userId)
-            .get()
-            .await()
-
-        return snapshot.documents.mapNotNull { doc ->
-            val program = parseProgram(doc) ?: return@mapNotNull null
-            FPAssignedProgram(
-                id = "assigned-${doc.id}",
-                programId = doc.id,
-                userId = userId,
-                coachId = program.creatorIds.firstOrNull(),
-                program = program
-            )
-        }
+        }.getOrElse { emptyList() }
     }
 
     suspend fun fetchCreatorPrograms(userId: String): List<FPProgram> =
-        db.collection("programs")
-            .whereArrayContains("creatorIds", userId)
-            .get()
-            .await()
-            .documents
-            .mapNotNull { parseProgram(it) }
+        runCatching {
+            db.collection("programs")
+                .whereArrayContains("creatorIds", userId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { parseProgram(it) }
+        }.getOrElse { emptyList() }
 
     suspend fun fetchProgram(programId: String): FPProgram {
         val doc = db.collection("programs").document(programId).get().await()
         return parseProgram(doc) ?: throw FitProsError.NotFound("Program")
     }
 
-    suspend fun fetchProgramWeeks(programId: String): List<FPProgramWeek> {
-        val snapshot = db.collection("programs").document(programId)
-            .collection("programWeeks")
-            .orderBy("index")
-            .get()
-            .await()
+    suspend fun fetchProgramWeeks(programId: String): List<FPProgramWeek> =
+        runCatching {
+            val snapshot = db.collection("programs").document(programId)
+                .collection("programWeeks")
+                .get()
+                .await()
 
-        return snapshot.documents.map { doc ->
-            val data = doc.data ?: emptyMap()
-            FPProgramWeek(
-                id = doc.id,
-                name = data["name"] as? String ?: "Week",
-                index = (data["index"] as? Long)?.toInt() ?: 0,
-                programId = programId,
-                workouts = fetchWorkouts(programId, doc.id)
-            )
-        }
-    }
+            snapshot.documents
+                .map { doc ->
+                    val data = doc.data ?: emptyMap()
+                    FPProgramWeek(
+                        id = doc.id,
+                        name = data["name"] as? String ?: "Week",
+                        index = (data["index"] as? Long)?.toInt() ?: 0,
+                        programId = programId,
+                        workouts = fetchWorkouts(programId, doc.id)
+                    )
+                }
+                .sortedBy { it.index }
+        }.getOrElse { emptyList() }
 
     suspend fun fetchWorkouts(programId: String, weekId: String): List<FPWorkout> =
-        db.collection("programs").document(programId)
-            .collection("programWeeks").document(weekId)
-            .collection("workouts")
-            .orderBy("index")
-            .get()
-            .await()
-            .documents
-            .mapNotNull { parseWorkout(it, programId, weekId) }
-            .sortedBy { it.index }
+        runCatching {
+            db.collection("programs").document(programId)
+                .collection("programWeeks").document(weekId)
+                .collection("workouts")
+                .get()
+                .await()
+                .documents
+                .mapNotNull { parseWorkout(it, programId, weekId) }
+                .sortedBy { it.index }
+        }.getOrElse { emptyList() }
 
     suspend fun fetchWorkout(programId: String, weekId: String, workoutId: String): FPWorkout {
         val doc = db.collection("programs").document(programId)
@@ -149,14 +153,16 @@ class FirestoreService private constructor() {
     // MARK: - Workout Logs
 
     suspend fun fetchWorkoutLogs(userId: String, limit: Int = 50): List<FPWorkoutLog> =
-        db.collection("workoutLogs")
-            .whereEqualTo("userId", userId)
-            .orderBy("startedAt", Query.Direction.DESCENDING)
-            .limit(limit.toLong())
-            .get()
-            .await()
-            .documents
-            .mapNotNull { parseWorkoutLog(it) }
+        runCatching {
+            db.collection("workoutLogs")
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { parseWorkoutLog(it) }
+                .sortedByDescending { it.startedAt }
+                .take(limit)
+        }.getOrElse { emptyList() }
 
     suspend fun saveWorkoutLog(log: FPWorkoutLog) {
         val data = mutableMapOf<String, Any>(
@@ -184,14 +190,19 @@ class FirestoreService private constructor() {
     }
 
     suspend fun fetchUserHabits(userId: String): List<FPHabit> =
-        db.collection("userHabits")
-            .whereEqualTo("client.id", userId)
-            .whereEqualTo("active", true)
-            .get()
-            .await()
-            .documents
-            .mapNotNull { parseUserHabit(it) }
-            .sortedWith(compareBy<FPHabit> { it.index }.thenBy { it.name })
+        runCatching {
+            db.collection("userHabits")
+                .whereEqualTo("client.id", userId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { doc ->
+                    val data = doc.data ?: return@mapNotNull null
+                    if (data["active"] as? Boolean == false) return@mapNotNull null
+                    parseUserHabit(doc)
+                }
+                .sortedWith(compareBy<FPHabit> { it.index }.thenBy { it.name })
+        }.getOrElse { emptyList() }
 
     suspend fun fetchUserHabitLogsForDate(userId: String, date: Date): List<FPHabitLog> {
         val cal = Calendar.getInstance().apply { time = date }
@@ -204,14 +215,15 @@ class FirestoreService private constructor() {
         cal.add(Calendar.MILLISECOND, -1)
         val end = cal.time
 
-        return db.collection("userHabitLogs")
-            .whereEqualTo("userId", userId)
-            .whereGreaterThanOrEqualTo("date", Timestamp(start))
-            .whereLessThanOrEqualTo("date", Timestamp(end))
-            .get()
-            .await()
-            .documents
-            .mapNotNull { parseUserHabitLog(it) }
+        return runCatching {
+            db.collection("userHabitLogs")
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { parseUserHabitLog(it) }
+                .filter { it.date in start..end }
+        }.getOrElse { emptyList() }
     }
 
     fun mergeHabitsWithLogs(habits: List<FPHabit>, logs: List<FPHabitLog>): List<FPHabit> {
@@ -256,14 +268,16 @@ class FirestoreService private constructor() {
     // MARK: - Progress Pictures
 
     suspend fun fetchProgressPictures(userId: String): List<FPProgressPicture> =
-        db.collection("progressPictures")
-            .whereEqualTo("userId", userId)
-            .orderBy("dateCreated", Query.Direction.DESCENDING)
-            .limit(100)
-            .get()
-            .await()
-            .documents
-            .mapNotNull { parseProgressPicture(it) }
+        runCatching {
+            db.collection("progressPictures")
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { parseProgressPicture(it) }
+                .sortedByDescending { it.dateCreated }
+                .take(100)
+        }.getOrElse { emptyList() }
 
     fun groupProgressSessions(pictures: List<FPProgressPicture>): List<FPProgressSession> {
         val poseOrder = mapOf("front" to 0, "side" to 1, "back" to 2)
@@ -386,45 +400,49 @@ class FirestoreService private constructor() {
     // MARK: - Content
 
     suspend fun fetchContent(userId: String): List<FPContent> =
-        db.collection("content")
-            .whereArrayContains("userIds", userId)
-            .get()
-            .await()
-            .documents
-            .mapNotNull { doc ->
-                val data = doc.data ?: return@mapNotNull null
-                FPContent(
-                    id = doc.id,
-                    title = data["title"] as? String ?: "",
-                    body = data["body"] as? String,
-                    imageUrl = data["imageUrl"] as? String,
-                    type = data["type"] as? String ?: "article",
-                    dateCreated = (data["dateCreated"] as? Timestamp)?.toDate()
-                )
-            }
+        runCatching {
+            db.collection("content")
+                .whereArrayContains("userIds", userId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { doc ->
+                    val data = doc.data ?: return@mapNotNull null
+                    FPContent(
+                        id = doc.id,
+                        title = data["title"] as? String ?: "",
+                        body = data["body"] as? String,
+                        imageUrl = data["imageUrl"] as? String,
+                        type = data["type"] as? String ?: "article",
+                        dateCreated = (data["dateCreated"] as? Timestamp)?.toDate()
+                    )
+                }
+        }.getOrElse { emptyList() }
 
     // MARK: - Personal Records
 
     suspend fun fetchPersonalRecords(userId: String): List<FPPersonalRecord> =
-        db.collection("personalRecords")
-            .whereEqualTo("userId", userId)
-            .orderBy("date", Query.Direction.DESCENDING)
-            .get()
-            .await()
-            .documents
-            .mapNotNull { doc ->
-                val data = doc.data ?: return@mapNotNull null
-                val date = (data["date"] as? Timestamp)?.toDate() ?: return@mapNotNull null
-                FPPersonalRecord(
-                    id = doc.id,
-                    exerciseId = data["exerciseId"] as? String ?: "",
-                    exerciseName = data["exerciseName"] as? String ?: "",
-                    metric = data["metric"] as? String ?: "",
-                    value = data["value"] as? String ?: "",
-                    date = date,
-                    previousValue = data["previousValue"] as? String
-                )
-            }
+        runCatching {
+            db.collection("personalRecords")
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { doc ->
+                    val data = doc.data ?: return@mapNotNull null
+                    val date = (data["date"] as? Timestamp)?.toDate() ?: return@mapNotNull null
+                    FPPersonalRecord(
+                        id = doc.id,
+                        exerciseId = data["exerciseId"] as? String ?: "",
+                        exerciseName = data["exerciseName"] as? String ?: "",
+                        metric = data["metric"] as? String ?: "",
+                        value = data["value"] as? String ?: "",
+                        date = date,
+                        previousValue = data["previousValue"] as? String
+                    )
+                }
+                .sortedByDescending { it.date }
+        }.getOrElse { emptyList() }
 
     suspend fun savePersonalRecord(record: FPPersonalRecord, userId: String) {
         val data = mutableMapOf<String, Any>(
@@ -442,12 +460,14 @@ class FirestoreService private constructor() {
     // MARK: - Forms
 
     suspend fun fetchForms(userId: String): List<FPForm> =
-        db.collection("forms")
-            .whereArrayContains("clientIds", userId)
-            .get()
-            .await()
-            .documents
-            .mapNotNull { parseForm(it) }
+        runCatching {
+            db.collection("forms")
+                .whereArrayContains("clientIds", userId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { parseForm(it) }
+        }.getOrElse { emptyList() }
 
     suspend fun submitForm(formId: String, clientId: String, answers: List<FPFormAnswer>) {
         val ref = db.collection("forms").document(formId)
@@ -469,17 +489,18 @@ class FirestoreService private constructor() {
     fun listenToWorkoutLogs(userId: String, onChange: (List<FPWorkoutLog>) -> Unit): ListenerRegistration =
         db.collection("workoutLogs")
             .whereEqualTo("userId", userId)
-            .orderBy("startedAt", Query.Direction.DESCENDING)
-            .limit(50)
             .addSnapshotListener { snapshot, _ ->
-                val logs = snapshot?.documents?.mapNotNull { parseWorkoutLog(it) } ?: emptyList()
+                val logs = snapshot?.documents
+                    ?.mapNotNull { parseWorkoutLog(it) }
+                    ?.sortedByDescending { it.startedAt }
+                    ?.take(50)
+                    ?: emptyList()
                 onChange(logs)
             }
 
     fun listenToHabits(userId: String, onChange: (List<FPHabit>) -> Unit): ListenerRegistration =
         db.collection("userHabits")
             .whereEqualTo("client.id", userId)
-            .whereEqualTo("active", true)
             .addSnapshotListener { _, _ ->
                 listenerScope.launch {
                     val habits = runCatching { fetchHabits(userId) }.getOrDefault(emptyList())

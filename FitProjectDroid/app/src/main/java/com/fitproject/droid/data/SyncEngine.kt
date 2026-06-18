@@ -73,6 +73,7 @@ class SyncEngine {
         callbacks.onSyncingChanged(true)
         callbacks.onSyncError(null)
 
+        val syncErrors = mutableListOf<String>()
         try {
             coroutineScope {
                 val assignedDeferred = async { firestore.fetchAssignedPrograms(userId) }
@@ -84,7 +85,11 @@ class SyncEngine {
                 val contentDeferred = async { firestore.fetchContent(userId) }
                 val recordsDeferred = async { firestore.fetchPersonalRecords(userId) }
                 val formsDeferred = async { firestore.fetchForms(userId) }
-                val profileDeferred = async { firestore.fetchUserProfile(userId) }
+                val profileDeferred = async {
+                    runCatching { firestore.fetchUserProfile(userId) }
+                        .onFailure { syncErrors.add(it.message ?: "Failed to load profile") }
+                        .getOrNull()
+                }
 
                 val assigned = assignedDeferred.await()
                 val creator = creatorDeferred.await()
@@ -110,6 +115,10 @@ class SyncEngine {
                     weeksByProgram[program.id] = firestore.fetchProgramWeeks(program.id)
                 }
 
+                if (allPrograms.isEmpty() && syncErrors.isNotEmpty()) {
+                    throw IllegalStateException(syncErrors.first())
+                }
+
                 val result = FullSyncResult(
                     programs = allPrograms,
                     programWeeks = weeksByProgram,
@@ -122,10 +131,12 @@ class SyncEngine {
                     content = cont,
                     personalRecords = recs,
                     forms = formsResult,
-                    unitPreferences = userProfile.unitPreferences,
-                    userProfile = userProfile
+                    unitPreferences = userProfile?.unitPreferences ?: FPUnitPreferences(),
+                    userProfile = userProfile ?: FPUser(id = userId)
                 )
                 callbacks.onFullSyncResult(result)
+                syncError = null
+                callbacks.onSyncError(null)
             }
         } catch (e: Exception) {
             syncError = e.message
