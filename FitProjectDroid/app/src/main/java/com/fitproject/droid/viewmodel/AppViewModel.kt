@@ -252,7 +252,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
                         "Weight" -> set = set.copy(weight = preset.value)
                         "RPE" -> set = set.copy(rpe = preset.value)
                         "Rest" -> set = set.copy(rest = preset.value)
-                        "Tempo" -> set = set.copy(tempo = preset.value)
+                        "Tempo" -> set = set.copy(
+                            tempo = com.fitproject.droid.ui.components.WorkoutMetricFormat
+                                .formatTempoDisplay(preset.value)
+                                .ifEmpty { null }
+                        )
                         "Time" -> set = set.copy(time = preset.value)
                     }
                 }

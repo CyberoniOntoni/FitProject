@@ -111,7 +111,9 @@ final class AppState: ObservableObject {
                     case "Weight": set.weight = value
                     case "RPE": set.rpe = value
                     case "Rest": set.rest = value
-                    case "Tempo": set.tempo = value
+                    case "Tempo":
+                        let formatted = WorkoutMetricFormat.formatTempoDisplay(value)
+                        set.tempo = formatted.isEmpty ? nil : formatted
                     case "Time": set.time = value
                     default: break
                     }

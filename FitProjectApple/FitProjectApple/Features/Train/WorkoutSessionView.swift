@@ -149,9 +149,15 @@ struct WorkoutSessionView: View {
                 ExerciseVideoPreview(exercise: exercise)
             }
 
-            Text(exercise.name)
-                .font(BWSTheme.headlineFont)
-                .foregroundStyle(BWSTheme.textPrimary)
+            HStack(alignment: .lastTextBaseline) {
+                Text(exercise.name)
+                    .font(BWSTheme.headlineFont)
+                    .foregroundStyle(BWSTheme.textPrimary)
+                Spacer()
+                Text("\(currentExerciseIndex + 1)/\(exercises.count)")
+                    .font(BWSTheme.captionFont)
+                    .foregroundStyle(BWSTheme.textTertiary)
+            }
 
             if let coachNotes = exercise.coachNotes, !coachNotes.isEmpty {
                 HStack(alignment: .top, spacing: 8) {
@@ -167,17 +173,6 @@ struct WorkoutSessionView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             }
 
-            HStack {
-                Text("Exercise \(currentExerciseIndex + 1) of \(exercises.count)")
-                    .font(BWSTheme.captionFont)
-                    .foregroundStyle(BWSTheme.textTertiary)
-                Spacer()
-                Button("View History") {
-                    appState.selectedTab = .history
-                }
-                .font(BWSTheme.captionFont)
-                .foregroundStyle(BWSTheme.accentSecondary)
-            }
         }
     }
 
@@ -186,18 +181,21 @@ struct WorkoutSessionView: View {
             .filter { $0.workoutExerciseId == exercise.id }
             .sorted { $0.index < $1.index }
 
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("SET")
-                    .frame(width: 24)
-                ForEach(metrics, id: \.id) { metric in
-                    Text(metric.name.uppercased())
-                        .frame(minWidth: 48)
+        return VStack(alignment: .leading, spacing: 10) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    Text("SET")
+                        .frame(width: 28)
+                    ForEach(metrics.sorted(by: { $0.index < $1.index }), id: \.id) { metric in
+                        Text(metric.name.uppercased())
+                            .font(.system(size: WorkoutMetricFormat.isHighlighted(metric.name) ? 12 : 11, weight: .bold))
+                            .foregroundStyle(metricHeaderColor(metric.name))
+                            .frame(minWidth: WorkoutMetricFormat.fieldMinWidth(metric.name))
+                    }
+                    Spacer().frame(width: 36)
                 }
-                Spacer().frame(width: 32)
+                .font(.system(size: 11, weight: .bold))
             }
-            .font(.system(size: 11, weight: .bold))
-            .foregroundStyle(BWSTheme.textTertiary)
 
             let sets = loggedSets[exercise.id] ?? []
             ForEach(Array(sets.enumerated()), id: \.element.id) { index, set in
@@ -224,6 +222,21 @@ struct WorkoutSessionView: View {
                 .background(BWSTheme.accent.opacity(0.1))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             }
+        }
+        .padding(12)
+        .background(BWSTheme.surfaceElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func metricHeaderColor(_ name: String) -> Color {
+        switch name {
+        case "Reps": return BWSTheme.repsColor
+        case "Weight": return BWSTheme.weightColor
+        case "RPE": return BWSTheme.rpeColor
+        case "Rest": return BWSTheme.restColor
+        case "Tempo": return BWSTheme.tempoColor
+        case "Time": return BWSTheme.timeColor
+        default: return BWSTheme.textTertiary
         }
     }
 

@@ -36,6 +36,7 @@
 		A10000010000000000000029 /* FirebaseStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000028 /* FirebaseStorageService.swift */; };
 		A10000010000000000000030 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000029 /* SettingsView.swift */; };
 		A10000010000000000000031 /* AddProgressPhotoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000030 /* AddProgressPhotoView.swift */; };
+		A10000010000000000000033 /* WorkoutMetricFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000031 /* WorkoutMetricFormat.swift */; };
 		A10000010000000000000021 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = A50000010000000000000001 /* FirebaseAuth */; };
 		A10000010000000000000022 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = A50000010000000000000002 /* FirebaseFirestore */; };
 		A10000010000000000000032 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = A50000010000000000000003 /* FirebaseStorage */; };
@@ -72,6 +73,7 @@
 		A20000010000000000000028 /* FirebaseStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseStorageService.swift; sourceTree = "<group>"; };
 		A20000010000000000000029 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A20000010000000000000030 /* AddProgressPhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddProgressPhotoView.swift; sourceTree = "<group>"; };
+		A20000010000000000000031 /* WorkoutMetricFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMetricFormat.swift; sourceTree = "<group>"; };
 		A30000010000000000000001 /* FitProjectApple.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FitProjectApple.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -297,6 +299,7 @@
 			isa = PBXGroup;
 			children = (
 				A20000010000000000000010 /* SharedComponents.swift */,
+				A20000010000000000000031 /* WorkoutMetricFormat.swift */,
 				A20000010000000000000023 /* YouTubeEmbedView.swift */,
 			);
 			path = Components;
@@ -407,6 +410,7 @@
 				A10000010000000000000029 /* FirebaseStorageService.swift in Sources */,
 				A10000010000000000000030 /* SettingsView.swift in Sources */,
 				A10000010000000000000031 /* AddProgressPhotoView.swift in Sources */,
+				A10000010000000000000033 /* WorkoutMetricFormat.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

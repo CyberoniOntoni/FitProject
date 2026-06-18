@@ -156,9 +156,9 @@ struct SetRowView: View {
     var body: some View {
         HStack(spacing: 6) {
             Text("\(setNumber)")
-                .font(BWSTheme.metricFont)
-                .foregroundStyle(BWSTheme.textTertiary)
-                .frame(width: 24)
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundStyle(set.isCompleted ? BWSTheme.accent : BWSTheme.textSecondary)
+                .frame(width: 28)
 
             ForEach(metrics.sorted(by: { $0.index < $1.index }), id: \.id) { metric in
                 metricField(for: metric)
@@ -169,39 +169,77 @@ struct SetRowView: View {
                 if set.isCompleted { onComplete() }
             }) {
                 Image(systemName: set.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.title3)
+                    .font(.title2)
                     .foregroundStyle(set.isCompleted ? BWSTheme.accent : BWSTheme.textTertiary)
             }
-            .frame(width: 32)
+            .frame(width: 36)
         }
         .padding(.vertical, 4)
-        .background(set.isPR ? BWSTheme.prGold.opacity(0.08) : Color.clear)
+        .background(
+            set.isCompleted
+                ? BWSTheme.accent.opacity(0.08)
+                : (set.isPR ? BWSTheme.prGold.opacity(0.08) : Color.clear)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     @ViewBuilder
     private func metricField(for metric: FPWorkoutMetric) -> some View {
         let binding = metricBinding(for: metric.name)
-        TextField("—", text: binding)
-            .font(BWSTheme.metricFont)
+        let color = metricColor(metric.name)
+        let highlighted = WorkoutMetricFormat.isHighlighted(metric.name)
+        TextField(metric.name == "Tempo" ? "301" : "—", text: binding)
+            .font(.system(size: highlighted ? 16 : 15, weight: highlighted ? .bold : .semibold, design: .monospaced))
+            .foregroundStyle(color)
             .multilineTextAlignment(.center)
-            .frame(minWidth: 48)
-            .padding(.vertical, 8)
-            .background(metricColor(metric.name).opacity(0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .keyboardType(.decimalPad)
+            .frame(minWidth: WorkoutMetricFormat.fieldMinWidth(metric.name))
+            .frame(height: highlighted ? 44 : 40)
+            .padding(.horizontal, 4)
+            .background(color.opacity(highlighted ? 0.14 : 0.08))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(color.opacity(highlighted ? 0.4 : 0.22), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .keyboardType(metric.name == "Tempo" || metric.name == "Reps" || metric.name == "Rest" ? .numberPad : .decimalPad)
     }
 
     private func metricBinding(for name: String) -> Binding<String> {
         switch name {
-        case "Reps": return $set.reps.mapped(default: "")
-        case "Weight": return $set.weight.mapped(default: "")
-        case "RPE": return $set.rpe.mapped(default: "")
-        case "Rest": return $set.rest.mapped(default: "")
-        case "Tempo": return $set.tempo.mapped(default: "")
-        case "Time": return $set.time.mapped(default: "")
-        default: return .constant("")
+        case "Reps":
+            return mappedBinding(
+                get: { set.reps ?? "" },
+                set: { set.reps = WorkoutMetricFormat.sanitizeMetricInput(name, $0).isEmpty ? nil : WorkoutMetricFormat.sanitizeMetricInput(name, $0) }
+            )
+        case "Weight":
+            return $set.weight.mapped(default: "")
+        case "RPE":
+            return mappedBinding(
+                get: { set.rpe ?? "" },
+                set: { set.rpe = WorkoutMetricFormat.sanitizeMetricInput(name, $0).isEmpty ? nil : WorkoutMetricFormat.sanitizeMetricInput(name, $0) }
+            )
+        case "Rest":
+            return mappedBinding(
+                get: { set.rest ?? "" },
+                set: { set.rest = WorkoutMetricFormat.sanitizeMetricInput(name, $0).isEmpty ? nil : WorkoutMetricFormat.sanitizeMetricInput(name, $0) }
+            )
+        case "Tempo":
+            return mappedBinding(
+                get: { WorkoutMetricFormat.formatTempoDisplay(set.tempo) },
+                set: {
+                    let sanitized = WorkoutMetricFormat.sanitizeTempoInput($0)
+                    set.tempo = sanitized.isEmpty ? nil : sanitized
+                }
+            )
+        case "Time":
+            return $set.time.mapped(default: "")
+        default:
+            return .constant("")
         }
+    }
+
+    private func mappedBinding(get: @escaping () -> String, set: @escaping (String) -> Void) -> Binding<String> {
+        Binding(get: get, set: set)
     }
 
     private func metricColor(_ name: String) -> Color {

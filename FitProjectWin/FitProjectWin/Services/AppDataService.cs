@@ -149,7 +149,7 @@ public sealed class AppDataService
                         case "Weight": set.Weight = preset.Value; break;
                         case "RPE": set.Rpe = preset.Value; break;
                         case "Rest": set.Rest = preset.Value; break;
-                        case "Tempo": set.Tempo = preset.Value; break;
+                        case "Tempo": set.Tempo = Helpers.WorkoutMetricFormat.FormatTempoDisplay(preset.Value); break;
                         case "Time": set.Time = preset.Value; break;
                     }
                 }

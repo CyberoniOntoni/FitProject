@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -58,6 +59,7 @@ import com.fitproject.droid.data.WorkoutSessionState
 import com.fitproject.droid.ui.components.BWSPrimaryButton
 import com.fitproject.droid.ui.components.ExerciseVideoPreview
 import com.fitproject.droid.ui.components.PRBadge
+import com.fitproject.droid.ui.components.WorkoutMetricFormat
 import com.fitproject.droid.ui.theme.BWSColors
 import com.fitproject.droid.ui.theme.BWSTypography
 import com.fitproject.droid.ui.theme.metricColor
@@ -297,7 +299,23 @@ private fun ExerciseHeader(
             ExerciseVideoPreview(exercise = exercise)
         }
 
-        Text(exercise.name, style = BWSTypography.Headline, color = BWSColors.TextPrimary)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Text(
+                exercise.name,
+                style = BWSTypography.Headline,
+                color = BWSColors.TextPrimary,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                "${currentIndex + 1}/$totalCount",
+                style = BWSTypography.Caption,
+                color = BWSColors.TextTertiary
+            )
+        }
 
         exercise.coachNotes?.takeIf { it.isNotEmpty() }?.let { notes ->
             Row(
@@ -313,11 +331,6 @@ private fun ExerciseHeader(
             }
         }
 
-        Text(
-            "Exercise ${currentIndex + 1} of $totalCount",
-            style = BWSTypography.Caption,
-            color = BWSColors.TextTertiary
-        )
     }
 }
 
@@ -332,29 +345,33 @@ private fun SetsSection(
 ) {
     val displayMetrics = if (metrics.isEmpty()) defaultMetrics() else metrics
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(BWSColors.SurfaceElevated)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
                 "SET",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = BWSColors.TextTertiary,
-                modifier = Modifier.width(28.dp)
+                modifier = Modifier.width(28.dp),
+                textAlign = TextAlign.Center
             )
             displayMetrics.forEach { metric ->
-                Text(
-                    metric.name.uppercase(),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = BWSColors.TextTertiary,
-                    modifier = Modifier.width(56.dp),
-                    textAlign = TextAlign.Center
-                )
+                MetricHeaderLabel(metric.name)
             }
-            Spacer(modifier = Modifier.width(36.dp))
+            Spacer(modifier = Modifier.width(32.dp))
         }
 
         sets.forEachIndexed { index, set ->
@@ -389,6 +406,20 @@ private fun SetsSection(
 }
 
 @Composable
+private fun MetricHeaderLabel(metricName: String) {
+    val color = metricColor(metricName)
+    val highlighted = WorkoutMetricFormat.isHighlighted(metricName)
+    Text(
+        metricName.uppercase(),
+        fontSize = if (highlighted) 12.sp else 11.sp,
+        fontWeight = FontWeight.Bold,
+        color = color,
+        modifier = Modifier.width(WorkoutMetricFormat.fieldWidth(metricName)),
+        textAlign = TextAlign.Center
+    )
+}
+
+@Composable
 private fun SetRow(
     setNumber: Int,
     set: FPLoggedSet,
@@ -396,58 +427,38 @@ private fun SetRow(
     onSetChange: (FPLoggedSet) -> Unit,
     onToggleComplete: () -> Unit
 ) {
-    val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedTextColor = BWSColors.TextPrimary,
-        unfocusedTextColor = BWSColors.TextPrimary,
-        focusedContainerColor = BWSColors.Surface,
-        unfocusedContainerColor = BWSColors.Surface,
-        focusedBorderColor = Color.Transparent,
-        unfocusedBorderColor = Color.Transparent,
-        cursorColor = BWSColors.Accent
-    )
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
             .clip(RoundedCornerShape(10.dp))
-            .background(if (set.isCompleted) BWSColors.Accent.copy(alpha = 0.08f) else BWSColors.Surface)
+            .background(if (set.isCompleted) BWSColors.Accent.copy(alpha = 0.08f) else Color.Transparent)
             .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Text(
             "$setNumber",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
             color = if (set.isCompleted) BWSColors.Accent else BWSColors.TextSecondary,
             modifier = Modifier.width(28.dp),
             textAlign = TextAlign.Center
         )
 
         metrics.forEach { metric ->
-            val value = getMetricValue(set, metric.name)
-            OutlinedTextField(
-                value = value,
+            MetricInputField(
+                metricName = metric.name,
+                value = getMetricValue(set, metric.name),
                 onValueChange = { newValue ->
                     onSetChange(updateMetricValue(set, metric.name, newValue))
-                },
-                modifier = Modifier
-                    .width(56.dp)
-                    .padding(horizontal = 2.dp),
-                singleLine = true,
-                textStyle = androidx.compose.ui.text.TextStyle(
-                    fontSize = 14.sp,
-                    textAlign = TextAlign.Center,
-                    color = metricColor(metric.name)
-                ),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                colors = fieldColors,
-                shape = RoundedCornerShape(8.dp)
+                }
             )
         }
 
         Box(
             modifier = Modifier
-                .size(32.dp)
+                .size(36.dp)
                 .clip(CircleShape)
                 .background(
                     if (set.isCompleted) BWSColors.Accent else BWSColors.SurfaceHighlight
@@ -459,10 +470,62 @@ private fun SetRow(
                 Icons.Default.Check,
                 contentDescription = "Complete set",
                 tint = if (set.isCompleted) Color.White else BWSColors.TextTertiary,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(18.dp)
             )
         }
     }
+}
+
+@Composable
+private fun MetricInputField(
+    metricName: String,
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    val color = metricColor(metricName)
+    val highlighted = WorkoutMetricFormat.isHighlighted(metricName)
+    val displayValue = if (metricName == "Tempo") {
+        WorkoutMetricFormat.formatTempoDisplay(value)
+    } else {
+        value
+    }
+    val keyboardType = when (metricName) {
+        "Tempo", "Reps", "Rest" -> KeyboardType.Number
+        else -> KeyboardType.Decimal
+    }
+
+    OutlinedTextField(
+        value = displayValue,
+        onValueChange = { newValue ->
+            onValueChange(WorkoutMetricFormat.sanitizeMetricInput(metricName, newValue))
+        },
+        modifier = Modifier
+            .width(WorkoutMetricFormat.fieldWidth(metricName))
+            .height(if (highlighted) 44.dp else 40.dp),
+        singleLine = true,
+        placeholder = {
+            if (metricName == "Tempo") {
+                Text("301", fontSize = 14.sp, color = BWSColors.TextTertiary, textAlign = TextAlign.Center)
+            }
+        },
+        textStyle = androidx.compose.ui.text.TextStyle(
+            fontSize = if (highlighted) 16.sp else 15.sp,
+            fontWeight = if (highlighted) FontWeight.Bold else FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            color = color
+        ),
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = color,
+            unfocusedTextColor = color,
+            focusedContainerColor = color.copy(alpha = if (highlighted) 0.18f else 0.1f),
+            unfocusedContainerColor = color.copy(alpha = if (highlighted) 0.12f else 0.08f),
+            focusedBorderColor = color.copy(alpha = 0.55f),
+            unfocusedBorderColor = color.copy(alpha = if (highlighted) 0.35f else 0.2f),
+            cursorColor = color
+        ),
+        shape = RoundedCornerShape(8.dp)
+    )
 }
 
 @Composable
@@ -617,7 +680,7 @@ private fun updateMetricValue(set: FPLoggedSet, metricName: String, value: Strin
     "Weight" -> set.copy(weight = value.ifEmpty { null })
     "RPE" -> set.copy(rpe = value.ifEmpty { null })
     "Rest" -> set.copy(rest = value.ifEmpty { null })
-    "Tempo" -> set.copy(tempo = value.ifEmpty { null })
+    "Tempo" -> set.copy(tempo = WorkoutMetricFormat.sanitizeTempoInput(value).ifEmpty { null })
     "Time" -> set.copy(time = value.ifEmpty { null })
     else -> set
 }
