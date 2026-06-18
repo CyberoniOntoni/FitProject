@@ -13,9 +13,24 @@ public static class YouTubeEmbedHelper
             "FitProjectWin",
             "webview");
 
+    private const string RefererHost = "com.fitproject.app";
+
+    public static string? NormalizeYoutubeId(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        var value = raw.Trim();
+        var match = System.Text.RegularExpressions.Regex.Match(
+            value,
+            @"(?:youtube\.com/(?:watch\?v=|embed/|shorts/)|youtu\.be/|youtube-nocookie\.com/embed/)([A-Za-z0-9_-]{11})",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (match.Success) return match.Groups[1].Value;
+        return value;
+    }
+
     public static string BuildEmbedHtml(string youtubeId, bool autoplay = true)
     {
         var autoplayParam = autoplay ? "1" : "0";
+        var origin = Uri.EscapeDataString($"https://{RefererHost}");
         return $$"""
 <!DOCTYPE html>
 <html>
@@ -25,15 +40,15 @@ public static class YouTubeEmbedHelper
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <style>
 html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}
-iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
 </style>
 </head>
 <body>
 <iframe
-  src="https://www.youtube-nocookie.com/embed/{{youtubeId}}?autoplay={{autoplayParam}}&rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
+  src="https://www.youtube-nocookie.com/embed/{{youtubeId}}?autoplay={{autoplayParam}}&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin={{origin}}"
   title="Exercise video"
   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-  referrerpolicy="strict-origin-when-cross-origin"
+  referrerpolicy="strict-origin"
   allowfullscreen>
 </iframe>
 </body>

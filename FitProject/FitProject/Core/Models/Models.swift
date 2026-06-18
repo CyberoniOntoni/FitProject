@@ -379,17 +379,23 @@ enum UnitConversionHelper {
         }
     }
 
+    static func formatDisplayNumber(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0
+            ? String(format: "%.0f", value)
+            : String(format: "%.1f", value)
+    }
+
     static func formatMeasurementValue(_ measurement: FPMeasurement, prefs: FPUnitPreferences) -> String {
         let type = MeasurementCatalog.findById(measurement.typeId) ?? MeasurementCatalog.findByName(measurement.name)
         if type?.category == "Circumference" {
             let display = convertCircumferenceForDisplay(measurement.value, unit: prefs.circumference)
-            return String(format: "%.2g %@", display, circumferenceAbbreviation(prefs.circumference))
+            return "\(formatDisplayNumber(display)) \(circumferenceAbbreviation(prefs.circumference))"
         }
         if type?.category == "Body Composition", type?.unitType == "MASS" {
             let display = convertMassForDisplay(measurement.value, unit: prefs.mass)
-            return String(format: "%.2g %@", display, massAbbreviation(prefs.mass))
+            return "\(formatDisplayNumber(display)) \(massAbbreviation(prefs.mass))"
         }
-        return String(format: "%.2g %@", measurement.value, measurement.unit)
+        return "\(formatDisplayNumber(measurement.value)) \(measurement.unit)"
     }
 }
 

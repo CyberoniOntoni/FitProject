@@ -356,20 +356,23 @@ public static class UnitConversionHelper
     public static double CircumferenceToCanonical(double value, string unit) =>
         unit == "INCH" ? value * 2.54 : value;
 
+    public static string FormatDisplayNumber(double value) =>
+        value % 1 == 0 ? $"{value:0}" : $"{value:0.0}";
+
     public static string FormatMeasurementValue(FPMeasurement m, FPUnitPreferences prefs)
     {
         var type = MeasurementCatalog.FindById(m.TypeId) ?? MeasurementCatalog.FindByName(m.Name);
         if (type?.Category == "Circumference")
         {
             var display = ConvertCircumferenceForDisplay(m.Value, prefs.Circumference);
-            return $"{display:0.##} {CircumferenceAbbreviation(prefs.Circumference)}";
+            return $"{FormatDisplayNumber(display)} {CircumferenceAbbreviation(prefs.Circumference)}";
         }
         if (type?.Category == "Body Composition" && type.UnitType == "MASS")
         {
             var display = ConvertMassForDisplay(m.Value, prefs.Mass);
-            return $"{display:0.##} {MassAbbreviation(prefs.Mass)}";
+            return $"{FormatDisplayNumber(display)} {MassAbbreviation(prefs.Mass)}";
         }
-        return $"{m.Value:0.##} {m.Unit}";
+        return $"{FormatDisplayNumber(m.Value)} {m.Unit}";
     }
 }
 

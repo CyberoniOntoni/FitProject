@@ -79,7 +79,7 @@ public sealed partial class WorkoutSessionPage : Page
 
     private async void VideoPlay_Click(object sender, RoutedEventArgs e)
     {
-        var youtubeId = _vm?.CurrentExercise?.YoutubeId;
+        var youtubeId = YouTubeEmbedHelper.NormalizeYoutubeId(_vm?.CurrentExercise?.YoutubeId);
         if (string.IsNullOrEmpty(youtubeId)) return;
 
         VideoPreviewLayer.Visibility = Visibility.Collapsed;
