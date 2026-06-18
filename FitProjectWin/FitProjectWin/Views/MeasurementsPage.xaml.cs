@@ -288,52 +288,8 @@ public sealed partial class MeasurementsPage : Page
 
     private void BuildWeightTrend(List<FPMeasurement> measurements)
     {
-        var weights = measurements
-            .Where(m => m.TypeId == "DfqsrFQBGi04aHWAPA7I" ||
-                        m.Name.Contains("Bodyweight", StringComparison.OrdinalIgnoreCase) ||
-                        m.Name.Contains("Weight", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(m => m.Date)
-            .TakeLast(10)
-            .ToList();
-
-        TrendChart.Children.Clear();
-        if (weights.Count < 2)
-        {
-            TrendCard.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        TrendCard.Visibility = Visibility.Visible;
-        var min = weights.Min(w => w.Value);
-        var max = weights.Max(w => w.Value);
-        var range = Math.Max(max - min, 0.1);
-
-        foreach (var w in weights)
-        {
-            var height = (w.Value - min) / range * 70 + 20;
-            TrendChart.Children.Add(new StackPanel
-            {
-                Spacing = 4,
-                VerticalAlignment = VerticalAlignment.Bottom,
-                Children =
-                {
-                    new Border
-                    {
-                        Width = 24,
-                        Height = height,
-                        CornerRadius = new CornerRadius(4),
-                        Background = (Brush)Application.Current.Resources["AccentBrush"]
-                    },
-                    new TextBlock
-                    {
-                        Text = w.Date.ToLocalTime().ToString("M/d"),
-                        FontSize = 9,
-                        Foreground = (Brush)Application.Current.Resources["TextTertiaryBrush"],
-                        HorizontalAlignment = HorizontalAlignment.Center
-                    }
-                }
-            });
-        }
+        WeightTrendChart.UpdateMeasurements(measurements, ViewModel.Data.UnitPreferences);
+        TrendCard.Visibility = WeightTrendChart.Visibility;
     }
 
     private void Back_Click(object sender, RoutedEventArgs e) =>
