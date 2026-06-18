@@ -25,7 +25,7 @@ class WorkoutSessionViewModel(
     private val _session = MutableStateFlow(initialSession)
     val session: StateFlow<WorkoutSessionState> = _session.asStateFlow()
 
-    private val _currentExerciseIndex = MutableStateFlow(0)
+    private val _currentExerciseIndex = MutableStateFlow(initialSession.currentExerciseIndex)
     val currentExerciseIndex: StateFlow<Int> = _currentExerciseIndex.asStateFlow()
 
     private val _loggedSets = MutableStateFlow(initialSession.loggedSets)
@@ -34,7 +34,7 @@ class WorkoutSessionViewModel(
     private val _notes = MutableStateFlow(initialSession.notes)
     val notes: StateFlow<String> = _notes.asStateFlow()
 
-    private val _elapsedSeconds = MutableStateFlow(0)
+    private val _elapsedSeconds = MutableStateFlow(initialSession.elapsedSeconds)
     val elapsedSeconds: StateFlow<Int> = _elapsedSeconds.asStateFlow()
 
     private val _restSecondsRemaining = MutableStateFlow(0)

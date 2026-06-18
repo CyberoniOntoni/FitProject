@@ -56,6 +56,7 @@ fun ProfileScreen(
     user: FPUser?,
     isSyncing: Boolean,
     lastSyncDate: Date?,
+    syncError: String? = null,
     habitsCount: Int,
     progressSessionsCount: Int,
     measurementsCount: Int,
@@ -63,6 +64,7 @@ fun ProfileScreen(
     pendingFormsCount: Int,
     massAbbreviation: String,
     onNavigate: (ProfileDestination) -> Unit,
+    onRefresh: () -> Unit = {},
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -75,7 +77,12 @@ fun ProfileScreen(
     ) {
         ProfileHeader(user = user)
 
-        SyncStatusCard(isSyncing = isSyncing, lastSyncDate = lastSyncDate)
+        SyncStatusCard(
+            isSyncing = isSyncing,
+            lastSyncDate = lastSyncDate,
+            syncError = syncError,
+            onRefresh = onRefresh
+        )
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
@@ -203,44 +210,66 @@ private fun ProfileHeader(user: FPUser?) {
 }
 
 @Composable
-private fun SyncStatusCard(isSyncing: Boolean, lastSyncDate: Date?) {
+private fun SyncStatusCard(
+    isSyncing: Boolean,
+    lastSyncDate: Date?,
+    syncError: String?,
+    onRefresh: () -> Unit
+) {
     BWSCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Default.Sync, null, tint = BWSColors.Accent)
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "FitPros.io Sync",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = BWSColors.TextPrimary
-                )
-                Text(
-                    text = when {
-                        isSyncing -> "Syncing..."
-                        lastSyncDate != null -> "Last synced ${formatRelativeTime(lastSyncDate)}"
-                        else -> "Not synced yet"
-                    },
-                    style = BWSTypography.Caption,
-                    color = BWSColors.TextSecondary
-                )
+                Icon(Icons.Default.Sync, null, tint = BWSColors.Accent)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        "FitPros.io Sync",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = BWSColors.TextPrimary
+                    )
+                    Text(
+                        text = when {
+                            isSyncing -> "Syncing..."
+                            syncError != null -> syncError
+                            lastSyncDate != null -> "Last synced ${formatRelativeTime(lastSyncDate)}"
+                            else -> "Not synced yet"
+                        },
+                        style = BWSTypography.Caption,
+                        color = if (syncError != null) BWSColors.Error else BWSColors.TextSecondary
+                    )
+                }
+                if (isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = BWSColors.Accent,
+                        strokeWidth = 2.dp
+                    )
+                } else if (syncError == null) {
+                    Icon(Icons.Default.CheckCircle, null, tint = BWSColors.Success)
+                }
             }
-            if (isSyncing) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = BWSColors.Accent,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Icon(Icons.Default.CheckCircle, null, tint = BWSColors.Success)
-            }
+
+            Text(
+                text = "Refresh Data",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (isSyncing) BWSColors.TextTertiary else BWSColors.Accent,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(BWSColors.ButtonRadius.dp))
+                    .background(BWSColors.Accent.copy(alpha = 0.1f))
+                    .clickable(enabled = !isSyncing, onClick = onRefresh)
+                    .padding(vertical = 12.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
         }
     }
 }

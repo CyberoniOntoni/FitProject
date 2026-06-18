@@ -118,6 +118,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
     private val _lastSyncDate = MutableStateFlow<Date?>(null)
     val lastSyncDate: StateFlow<Date?> = _lastSyncDate.asStateFlow()
 
+    private val _syncError = MutableStateFlow<String?>(null)
+    val syncError: StateFlow<String?> = _syncError.asStateFlow()
+
     // Overlays
     private val _showProfileSheet = MutableStateFlow(false)
     val showProfileSheet: StateFlow<Boolean> = _showProfileSheet.asStateFlow()
@@ -155,6 +158,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
         viewModelScope.launch {
             syncEngine.fullSync(userId, this@AppViewModel)
         }
+    }
+
+    fun refreshData() {
+        _syncError.value = null
+        loadData()
     }
 
     fun signIn(email: String, password: String) {
@@ -357,15 +365,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
         }
     }
 
-    fun saveProgressPhoto(draft: FPProgressPhotoDraft) {
-        val userId = _currentUser.value?.id ?: return
-        viewModelScope.launch {
+    suspend fun saveProgressPhoto(draft: FPProgressPhotoDraft): Result<Unit> {
+        val userId = _currentUser.value?.id
+            ?: return Result.failure(IllegalStateException("Not signed in"))
+        return try {
             syncEngine.pushProgressPhotoSession(
                 draft = draft,
                 userId = userId,
                 callbacks = this@AppViewModel,
                 currentPictures = _allProgressPictures.value
             )
+            Result.success(Unit)
+        } catch (e: Exception) {
+            val message = e.localizedMessage ?: "Failed to upload progress photos"
+            _syncError.value = message
+            Result.failure(e)
         }
     }
 
@@ -456,7 +470,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
     }
 
     override fun onSyncError(error: String?) {
-        // Ignored for now
+        _syncError.value = error
     }
 
     override fun onFormsUpdated(forms: List<FPForm>) {

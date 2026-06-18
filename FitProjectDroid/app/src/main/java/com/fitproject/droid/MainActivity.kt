@@ -4,9 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,7 +29,6 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -41,7 +38,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -70,7 +66,6 @@ import com.fitproject.droid.data.AppTab
 import com.fitproject.droid.data.FPContent
 import com.fitproject.droid.data.FPForm
 import com.fitproject.droid.ui.components.BWSPrimaryButton
-import com.fitproject.droid.ui.components.PRBadge
 import com.fitproject.droid.ui.navigation.FormFillScreen
 import com.fitproject.droid.ui.navigation.ProfileNavHost
 import com.fitproject.droid.ui.screens.ContentDetailScreen
@@ -78,11 +73,11 @@ import com.fitproject.droid.ui.screens.HistoryScreen
 import com.fitproject.droid.ui.screens.LearnScreen
 import com.fitproject.droid.ui.screens.ProgramsScreen
 import com.fitproject.droid.ui.screens.TrainScreen
+import com.fitproject.droid.ui.screens.WorkoutSessionScreen
 import com.fitproject.droid.ui.theme.BWSColors
 import com.fitproject.droid.ui.theme.BWSTypography
 import com.fitproject.droid.ui.theme.FitProjectTheme
 import com.fitproject.droid.viewmodel.AppViewModel
-import com.fitproject.droid.viewmodel.WorkoutSessionViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,6 +96,14 @@ fun FitProjectRoot(appViewModel: AppViewModel = viewModel()) {
     val isAuthenticated by appViewModel.isAuthenticated.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val activeSession by appViewModel.activeWorkoutSession.collectAsStateWithLifecycle()
+    var workoutDismissed by remember { mutableStateOf(false) }
+    val sessionKey = activeSession?.let { "${it.workout.id}-${it.startedAt.time}" }
+
+    LaunchedEffect(sessionKey) {
+        if (sessionKey != null) {
+            workoutDismissed = false
+        }
+    }
 
     LaunchedEffect(isAuthenticated) {
         if (isAuthenticated) {
@@ -114,11 +117,13 @@ fun FitProjectRoot(appViewModel: AppViewModel = viewModel()) {
         }
     }
 
-    LaunchedEffect(activeSession) {
-        if (activeSession != null && navController.currentDestination?.route != "workout") {
-            navController.navigate("workout")
-        } else if (activeSession == null && navController.currentDestination?.route == "workout") {
-            navController.popBackStack()
+    LaunchedEffect(activeSession, workoutDismissed) {
+        when {
+            activeSession == null && navController.currentDestination?.route == "workout" ->
+                navController.popBackStack()
+            activeSession != null && !workoutDismissed &&
+                navController.currentDestination?.route != "workout" ->
+                navController.navigate("workout")
         }
     }
 
@@ -134,8 +139,15 @@ fun FitProjectRoot(appViewModel: AppViewModel = viewModel()) {
             MainShell(appViewModel = appViewModel)
         }
         composable("workout") {
-            if (activeSession != null) {
-                WorkoutSessionPlaceholder(appViewModel = appViewModel)
+            activeSession?.let { session ->
+                WorkoutSessionScreen(
+                    session = session,
+                    appViewModel = appViewModel,
+                    onDismiss = {
+                        workoutDismissed = true
+                        navController.popBackStack()
+                    }
+                )
             }
         }
     }
@@ -410,7 +422,7 @@ fun MainShell(appViewModel: AppViewModel) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(700.dp)
+                        .fillMaxHeight(0.92f)
                 ) {
                     ProfileNavHost(
                         appViewModel = appViewModel,
@@ -456,108 +468,3 @@ private fun TabBarItem(
     }
 }
 
-@Composable
-fun WorkoutSessionPlaceholder(appViewModel: AppViewModel) {
-    val session = appViewModel.activeWorkoutSession.collectAsStateWithLifecycle().value ?: return
-    val workoutSessionViewModel = remember(session) {
-        WorkoutSessionViewModel(session, appViewModel)
-    }
-    val currentExercise = workoutSessionViewModel.currentExercise
-    val elapsed by workoutSessionViewModel.elapsedSeconds.collectAsStateWithLifecycle()
-    val exerciseIndex by workoutSessionViewModel.currentExerciseIndex.collectAsStateWithLifecycle()
-    val showDialog by workoutSessionViewModel.showCompleteDialog.collectAsStateWithLifecycle()
-    val showPR by workoutSessionViewModel.showPRToast.collectAsStateWithLifecycle()
-    val latestPR by workoutSessionViewModel.latestPR.collectAsStateWithLifecycle()
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BWSColors.Background)
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(session.workout.name, color = BWSColors.TextPrimary, fontWeight = FontWeight.SemiBold)
-                Text(workoutSessionViewModel.formatElapsed(elapsed), color = BWSColors.TextSecondary, fontSize = 13.sp)
-            }
-
-            currentExercise?.let { exercise ->
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(20.dp)
-                ) {
-                    Text(exercise.name, style = BWSTypography.Headline, color = BWSColors.TextPrimary)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "Exercise ${exerciseIndex + 1} of ${workoutSessionViewModel.exerciseCount}",
-                        style = BWSTypography.Caption,
-                        color = BWSColors.TextTertiary
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(BWSColors.SurfaceElevated)
-                    .padding(20.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                BWSPrimaryButton(
-                    title = "Finish",
-                    modifier = Modifier.weight(1f),
-                    onClick = { workoutSessionViewModel.requestFinish() }
-                )
-            }
-        }
-
-        AnimatedVisibility(
-            visible = showPR,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.align(Alignment.TopCenter)
-        ) {
-            Column(
-                modifier = Modifier.padding(top = 60.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                PRBadge()
-                latestPR?.let {
-                    Text(
-                        "${it.exerciseName} — ${it.value} kg",
-                        style = BWSTypography.Caption,
-                        color = BWSColors.TextPrimary
-                    )
-                }
-            }
-        }
-
-        if (showDialog) {
-            AlertDialog(
-                onDismissRequest = { workoutSessionViewModel.dismissCompleteDialog() },
-                title = { Text("Complete Workout?") },
-                text = { Text("Your workout will sync to FitPros.io") },
-                confirmButton = {
-                    TextButton(
-                        onClick = { workoutSessionViewModel.finishWorkout { } }
-                    ) { Text("Complete") }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = { workoutSessionViewModel.dismissCompleteDialog() }
-                    ) { Text("Cancel") }
-                },
-                containerColor = BWSColors.SurfaceElevated,
-                titleContentColor = BWSColors.TextPrimary,
-                textContentColor = BWSColors.TextSecondary
-            )
-        }
-    }
-}

@@ -72,6 +72,7 @@ fun ProfileNavHost(
     val personalRecords by appViewModel.personalRecords.collectAsStateWithLifecycle()
     val forms by appViewModel.forms.collectAsStateWithLifecycle()
     val unitPreferences by appViewModel.unitPreferences.collectAsStateWithLifecycle()
+    val syncError by appViewModel.syncError.collectAsStateWithLifecycle()
 
     val pendingFormsCount = remember(forms, user) {
         val userId = user?.id
@@ -95,6 +96,7 @@ fun ProfileNavHost(
                     user = user,
                     isSyncing = isSyncing,
                     lastSyncDate = lastSyncDate,
+                    syncError = syncError,
                     habitsCount = habits.size,
                     progressSessionsCount = progressSessions.size,
                     measurementsCount = measurements.size,
@@ -102,6 +104,7 @@ fun ProfileNavHost(
                     pendingFormsCount = pendingFormsCount,
                     massAbbreviation = unitPreferences.massAbbreviation,
                     onNavigate = { destination -> navController.navigate(destination.route) },
+                    onRefresh = appViewModel::refreshData,
                     onSignOut = {
                         onDismiss()
                         appViewModel.signOut()
@@ -136,10 +139,7 @@ fun ProfileNavHost(
 
         composable(ProfileDestination.ADD_PROGRESS_PHOTO.route) {
             AddProgressPhotoScreen(
-                onSave = { draft ->
-                    appViewModel.saveProgressPhoto(draft)
-                    navController.popBackStack()
-                },
+                onSave = { draft -> appViewModel.saveProgressPhoto(draft) },
                 onDismiss = { navController.popBackStack() }
             )
         }

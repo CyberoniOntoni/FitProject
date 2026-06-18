@@ -30,7 +30,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,11 +55,12 @@ import java.util.Locale
 
 @Composable
 fun AddProgressPhotoScreen(
-    onSave: (FPProgressPhotoDraft) -> Unit,
+    onSave: suspend (FPProgressPhotoDraft) -> Result<Unit>,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var draft by remember { mutableStateOf(FPProgressPhotoDraft()) }
     var activePose by remember { mutableStateOf("front") }
     var previewBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
@@ -260,9 +263,16 @@ fun AddProgressPhotoScreen(
                     statusText = "Please add at least one photo before saving."
                     return@BWSPrimaryButton
                 }
-                isSaving = true
-                statusText = "Uploading photos…"
-                onSave(draft)
+                scope.launch {
+                    isSaving = true
+                    statusText = "Uploading photos…"
+                    onSave(draft)
+                        .onSuccess { onDismiss() }
+                        .onFailure { error ->
+                            statusText = error.localizedMessage ?: "Upload failed. Please try again."
+                            isSaving = false
+                        }
+                }
             }
         )
     }
