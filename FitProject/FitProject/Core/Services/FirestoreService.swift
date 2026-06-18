@@ -23,8 +23,15 @@ final class FirestoreService {
             lastName: data["lastName"] as? String ?? "",
             profilePictureUrl: data["profilePictureUrl"] as? String,
             timezone: data["timezone"] as? String,
-            coachHasProTools: data["coachHasProTools"] as? Bool ?? false
+            coachHasProTools: data["coachHasProTools"] as? Bool ?? false,
+            unitPreferences: FPUnitPreferences.fromFirestore(data["unitPreferences"] as? [String: Any])
         )
+    }
+
+    func updateUnitPreference(userId: String, key: String, value: String) async throws {
+        try await db.collection("users").document(userId).updateData([
+            "unitPreferences.\(key)": value
+        ])
     }
 
     // MARK: - Programs
@@ -265,6 +272,43 @@ final class FirestoreService {
             )
         }
         .sorted { $0.dateCreated > $1.dateCreated }
+    }
+
+    func saveProgressSession(
+        userId: String,
+        sessionId: String,
+        dateCreated: Date,
+        notes: String?,
+        poses: [(poseType: String, imageUrl: String, existingId: String?)]
+    ) async throws {
+        let now = Date()
+        let batch = db.batch()
+
+        for pose in poses {
+            let docId = pose.existingId ?? UUID().uuidString
+            let ref = db.collection("progressPictures").document(docId)
+            batch.setData([
+                "userId": userId,
+                "sessionId": sessionId,
+                "poseType": pose.poseType,
+                "imageUrl": pose.imageUrl,
+                "dateCreated": Timestamp(date: dateCreated),
+                "lastUpdated": Timestamp(date: now),
+                "notes": notes ?? ""
+            ], forDocument: ref, merge: true)
+        }
+
+        let summary = (notes?.isEmpty == false) ? notes! : "Progress picture added"
+        let historyRef = db.collection("userHistory").document(sessionId)
+        batch.setData([
+            "userId": userId,
+            "dateCreated": Timestamp(date: dateCreated),
+            "type": "PROGRESS_PICTURE",
+            "summary": summary,
+            "imageUrl": poses[0].imageUrl
+        ], forDocument: historyRef, merge: true)
+
+        try await batch.commit()
     }
 
     // MARK: - Measurements

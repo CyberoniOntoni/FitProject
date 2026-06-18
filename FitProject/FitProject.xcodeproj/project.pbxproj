@@ -33,8 +33,12 @@
 		A10000010000000000000026 /* FormsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000025 /* FormsListView.swift */; };
 		A10000010000000000000027 /* PersonalRecordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000026 /* PersonalRecordsView.swift */; };
 		A10000010000000000000028 /* ProgressPhotosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000027 /* ProgressPhotosView.swift */; };
+		A10000010000000000000029 /* FirebaseStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000028 /* FirebaseStorageService.swift */; };
+		A10000010000000000000030 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000029 /* SettingsView.swift */; };
+		A10000010000000000000031 /* AddProgressPhotoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000030 /* AddProgressPhotoView.swift */; };
 		A10000010000000000000021 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = A50000010000000000000001 /* FirebaseAuth */; };
 		A10000010000000000000022 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = A50000010000000000000002 /* FirebaseFirestore */; };
+		A10000010000000000000032 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = A50000010000000000000003 /* FirebaseStorage */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -65,6 +69,9 @@
 		A20000010000000000000025 /* FormsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormsListView.swift; sourceTree = "<group>"; };
 		A20000010000000000000026 /* PersonalRecordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalRecordsView.swift; sourceTree = "<group>"; };
 		A20000010000000000000027 /* ProgressPhotosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressPhotosView.swift; sourceTree = "<group>"; };
+		A20000010000000000000028 /* FirebaseStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseStorageService.swift; sourceTree = "<group>"; };
+		A20000010000000000000029 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A20000010000000000000030 /* AddProgressPhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddProgressPhotoView.swift; sourceTree = "<group>"; };
 		A30000010000000000000001 /* FitProject.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FitProject.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -75,6 +82,7 @@
 			files = (
 				A10000010000000000000021 /* FirebaseAuth in Frameworks */,
 				A10000010000000000000022 /* FirebaseFirestore in Frameworks */,
+				A10000010000000000000032 /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -179,6 +187,7 @@
 			children = (
 				A20000010000000000000005 /* AuthService.swift */,
 				A20000010000000000000006 /* FirestoreService.swift */,
+				A20000010000000000000028 /* FirebaseStorageService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -261,6 +270,7 @@
 			isa = PBXGroup;
 			children = (
 				A20000010000000000000027 /* ProgressPhotosView.swift */,
+				A20000010000000000000030 /* AddProgressPhotoView.swift */,
 			);
 			path = ProgressPhotos;
 			sourceTree = "<group>";
@@ -270,6 +280,7 @@
 			children = (
 				A20000010000000000000019 /* ProfileView.swift */,
 				A20000010000000000000026 /* PersonalRecordsView.swift */,
+				A20000010000000000000029 /* SettingsView.swift */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -310,6 +321,7 @@
 			packageProductDependencies = (
 				A50000010000000000000001 /* FirebaseAuth */,
 				A50000010000000000000002 /* FirebaseFirestore */,
+				A50000010000000000000003 /* FirebaseStorage */,
 			);
 			productName = FitProject;
 			productReference = A30000010000000000000001 /* FitProject.app */;
@@ -392,6 +404,9 @@
 				A10000010000000000000026 /* FormsListView.swift in Sources */,
 				A10000010000000000000027 /* PersonalRecordsView.swift in Sources */,
 				A10000010000000000000028 /* ProgressPhotosView.swift in Sources */,
+				A10000010000000000000029 /* FirebaseStorageService.swift in Sources */,
+				A10000010000000000000030 /* SettingsView.swift in Sources */,
+				A10000010000000000000031 /* AddProgressPhotoView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -543,6 +558,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A80000010000000000000002 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
+		};
+		A50000010000000000000003 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A80000010000000000000002 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
 		};
 /* End XCSwiftPackageProductDependency section */
 

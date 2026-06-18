@@ -10,6 +10,8 @@ final class AppState: ObservableObject {
     @Published var workoutLogs: [FPWorkoutLog] = []
     @Published var habits: [FPHabit] = []
     @Published var progressSessions: [FPProgressSession] = []
+    @Published var allProgressPictures: [FPProgressPicture] = []
+    @Published var unitPreferences = FPUnitPreferences()
     @Published var measurements: [FPMeasurement] = []
     @Published var content: [FPContent] = []
     @Published var personalRecords: [FPPersonalRecord] = []
@@ -53,6 +55,8 @@ final class AppState: ObservableObject {
         workoutLogs = []
         habits = []
         progressSessions = []
+        allProgressPictures = []
+        unitPreferences = FPUnitPreferences()
         measurements = []
         content = []
         personalRecords = []
@@ -195,6 +199,16 @@ final class AppState: ObservableObject {
             answers: answers,
             appState: self
         )
+    }
+
+    func updateUnitPreference(key: String, value: String) async throws {
+        guard let userId = authService.currentUser?.id else { return }
+        try await syncEngine.pushUnitPreference(userId: userId, key: key, value: value, appState: self)
+    }
+
+    func saveProgressPhotoSession(_ draft: FPProgressPhotoDraft) async throws {
+        guard let userId = authService.currentUser?.id else { return }
+        try await syncEngine.pushProgressPhotoSession(draft: draft, userId: userId, appState: self)
     }
 
     func checkForPR(exercise: FPWorkoutExercise, set: FPLoggedSet) -> FPPersonalRecord? {

@@ -10,7 +10,8 @@ struct ProfileView: View {
                 VStack(spacing: 24) {
                     profileHeader
                     syncStatus
-                    menuSection
+                    trackAndRecordSection
+                    settingsSection
                     signOutButton
                 }
                 .padding(.horizontal, 20)
@@ -78,92 +79,88 @@ struct ProfileView: View {
         }
     }
 
-    private var menuSection: some View {
-        VStack(spacing: 2) {
+    private var trackAndRecordSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Track & Record")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(BWSTheme.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.bottom, 4)
 
-            NavigationLink {
-                HabitsView()
-            } label: {
-                trackMenuRow(
-                    icon: "checkmark.circle",
-                    title: "Habits",
-                    subtitle: "Record daily habits · \(appState.habits.count) active"
-                )
+            VStack(spacing: 0) {
+                NavigationLink { HabitsView() } label: {
+                    ProfileMenuRow(
+                        icon: "checkmark.circle",
+                        title: "Habits",
+                        subtitle: "Record daily habits · \(appState.habits.count) active"
+                    )
+                }
+                .buttonStyle(.plain)
+                ProfileMenuDivider()
+                NavigationLink { ProgressPhotosView() } label: {
+                    ProfileMenuRow(
+                        icon: "camera",
+                        title: "Progress Photos",
+                        subtitle: "Visual body transformation · \(appState.progressSessions.count) sessions"
+                    )
+                }
+                .buttonStyle(.plain)
+                ProfileMenuDivider()
+                NavigationLink { MeasurementsView() } label: {
+                    ProfileMenuRow(
+                        icon: "ruler",
+                        title: "Body Measurements",
+                        subtitle: "Weight, body comp & more · \(appState.measurements.count) entries"
+                    )
+                }
+                .buttonStyle(.plain)
+                ProfileMenuDivider()
+                NavigationLink { PersonalRecordsView() } label: {
+                    ProfileMenuRow(
+                        icon: "trophy",
+                        title: "Personal Records",
+                        subtitle: "\(appState.personalRecords.count) records synced from workouts"
+                    )
+                }
+                .buttonStyle(.plain)
+                ProfileMenuDivider()
+                NavigationLink { FormsListView() } label: {
+                    ProfileMenuRow(
+                        icon: "doc.text",
+                        title: "Forms",
+                        subtitle: pendingFormsCount
+                    )
+                }
+                .buttonStyle(.plain)
             }
-
-            NavigationLink {
-                MeasurementsView()
-            } label: {
-                trackMenuRow(
-                    icon: "ruler",
-                    title: "Body Measurements",
-                    subtitle: "Weight, body comp & more · \(appState.measurements.count) entries"
-                )
-            }
-
-            NavigationLink {
-                ProgressPhotosView()
-            } label: {
-                trackMenuRow(
-                    icon: "camera",
-                    title: "Progress Photos",
-                    subtitle: "Visual body transformation · \(appState.progressSessions.count) sessions"
-                )
-            }
-
-            NavigationLink {
-                PersonalRecordsView()
-            } label: {
-                trackMenuRow(
-                    icon: "trophy",
-                    title: "Personal Records",
-                    subtitle: "\(appState.personalRecords.count) records logged"
-                )
-            }
-
-            NavigationLink {
-                FormsListView()
-            } label: {
-                trackMenuRow(
-                    icon: "doc.text",
-                    title: "Forms",
-                    subtitle: pendingFormsCount
-                )
-            }
+            .background(BWSTheme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: BWSTheme.cardRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: BWSTheme.cardRadius)
+                    .stroke(Color.white.opacity(0.06), lineWidth: 1)
+            )
         }
-        .background(BWSTheme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: BWSTheme.cardRadius))
     }
 
-    private func trackMenuRow(icon: String, title: String, subtitle: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 18))
-                .foregroundStyle(BWSTheme.accent)
-                .frame(width: 28)
+    private var settingsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Settings")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(BWSTheme.textPrimary)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(BWSTheme.textPrimary)
-                Text(subtitle)
-                    .font(BWSTheme.captionFont)
-                    .foregroundStyle(BWSTheme.textSecondary)
+            NavigationLink { SettingsView() } label: {
+                ProfileMenuRow(
+                    icon: "gearshape",
+                    title: "Unit Preferences",
+                    subtitle: "Weight, circumference & more · \(appState.unitPreferences.massAbbreviation)"
+                )
             }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(BWSTheme.textTertiary)
+            .buttonStyle(.plain)
+            .background(BWSTheme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: BWSTheme.cardRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: BWSTheme.cardRadius)
+                    .stroke(Color.white.opacity(0.06), lineWidth: 1)
+            )
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
     }
 
     private var pendingFormsCount: String {

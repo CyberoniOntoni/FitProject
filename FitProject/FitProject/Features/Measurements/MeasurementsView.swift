@@ -80,10 +80,10 @@ struct MeasurementsView: View {
                     .foregroundStyle(BWSTheme.textPrimary)
 
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text(hasValue ? formatValue(latest!.value) : "—")
+                    Text(hasValue ? formatDisplayValue(latest!.value, for: type) : "—")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundStyle(hasValue ? BWSTheme.accent : BWSTheme.textTertiary)
-                    Text(type.displayUnit)
+                    Text(UnitConversionHelper.displayUnit(for: type, prefs: appState.unitPreferences))
                         .font(BWSTheme.captionFont)
                         .foregroundStyle(hasValue ? BWSTheme.textSecondary : BWSTheme.textTertiary)
                 }
@@ -170,14 +170,9 @@ struct MeasurementsView: View {
                                     .foregroundStyle(BWSTheme.textSecondary)
                             }
                             Spacer()
-                            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                                Text(formatValue(measurement.value))
-                                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                                    .foregroundStyle(BWSTheme.accent)
-                                Text(measurement.unit)
-                                    .font(BWSTheme.captionFont)
-                                    .foregroundStyle(BWSTheme.textSecondary)
-                            }
+                            Text(UnitConversionHelper.formatMeasurementValue(measurement, prefs: appState.unitPreferences))
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                .foregroundStyle(BWSTheme.accent)
                         }
                     }
                 }
@@ -209,7 +204,7 @@ struct MeasurementsView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 if let type = selectedType {
-                    Text("Unit: \(type.displayUnit)")
+                    Text("Unit: \(UnitConversionHelper.displayUnit(for: type, prefs: appState.unitPreferences))")
                         .font(BWSTheme.captionFont)
                         .foregroundStyle(BWSTheme.textSecondary)
                 }
@@ -247,17 +242,42 @@ struct MeasurementsView: View {
             : String(format: "%.1f", value)
     }
 
+    private func formatDisplayValue(_ canonicalValue: Double, for type: FPMeasurementTypeDef) -> String {
+        let prefs = appState.unitPreferences
+        let display: Double
+        switch type.category {
+        case "Circumference":
+            display = UnitConversionHelper.convertCircumferenceForDisplay(canonicalValue, unit: prefs.circumference)
+        case "Body Composition" where type.unitType == "MASS":
+            display = UnitConversionHelper.convertMassForDisplay(canonicalValue, unit: prefs.mass)
+        default:
+            display = canonicalValue
+        }
+        return formatValue(display)
+    }
+
     private func saveMeasurement() {
-        guard let value = Double(newValue),
+        guard let inputValue = Double(newValue),
               let userId = appState.authService.currentUser?.id,
               let type = selectedType else { return }
+
+        let prefs = appState.unitPreferences
+        let canonicalValue: Double
+        switch type.category {
+        case "Circumference":
+            canonicalValue = UnitConversionHelper.circumferenceToCanonical(inputValue, unit: prefs.circumference)
+        case "Body Composition" where type.unitType == "MASS":
+            canonicalValue = UnitConversionHelper.massToCanonical(inputValue, unit: prefs.mass)
+        default:
+            canonicalValue = inputValue
+        }
 
         let measurement = FPMeasurement(
             id: UUID().uuidString,
             typeId: type.id,
             name: type.name,
-            unit: type.displayUnit,
-            value: value,
+            unit: UnitConversionHelper.displayUnit(for: type, prefs: prefs),
+            value: canonicalValue,
             date: Date(),
             sessionId: UUID().uuidString
         )

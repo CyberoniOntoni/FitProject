@@ -326,6 +326,50 @@ struct HabitCounterView: View {
     }
 }
 
+// MARK: - Profile Menu Row
+
+struct ProfileMenuRow: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundStyle(BWSTheme.accent)
+                .frame(width: 28, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(BWSTheme.textPrimary)
+                Text(subtitle)
+                    .font(BWSTheme.captionFont)
+                    .foregroundStyle(BWSTheme.textSecondary)
+            }
+
+            Spacer(minLength: 8)
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(BWSTheme.textTertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .contentShape(Rectangle())
+    }
+}
+
+struct ProfileMenuDivider: View {
+    var body: some View {
+        Divider()
+            .overlay(BWSTheme.surfaceHighlight)
+            .padding(.leading, 52)
+    }
+}
+
 // MARK: - Helpers
 
 extension Binding where Value == String? {

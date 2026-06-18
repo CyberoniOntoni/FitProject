@@ -50,5 +50,7 @@
 	<string>Fit Project reads your health data to sync weight and activity with your training program.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Fit Project writes workout data to Apple Health.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Fit Project needs access to your photo library to upload progress photos.</string>
 </dict>
 </plist>

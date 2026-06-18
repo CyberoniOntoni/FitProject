@@ -53,10 +53,11 @@ final class SyncEngine: ObservableObject {
             async let content = firestore.fetchContent(userId: userId)
             async let records = firestore.fetchPersonalRecords(userId: userId)
             async let forms = firestore.fetchForms(userId: userId)
+            async let profile = firestore.fetchUserProfile(userId: userId)
 
-            let (assigned, creator, logs, habitsResult, pictures, meas, cont, recs, formsResult) = try await (
+            let (assigned, creator, logs, habitsResult, pictures, meas, cont, recs, formsResult, userProfile) = try await (
                 assignedPrograms, creatorPrograms, workoutLogs, habits, progressPictures,
-                measurements, content, records, forms
+                measurements, content, records, forms, profile
             )
 
             var allPrograms: [FPProgram] = creator
@@ -78,11 +79,14 @@ final class SyncEngine: ObservableObject {
             appState.assignedPrograms = assigned
             appState.workoutLogs = logs
             appState.habits = habitsResult
+            appState.allProgressPictures = pictures
             appState.progressSessions = FirestoreService.groupProgressSessions(pictures)
             appState.measurements = meas
             appState.content = cont
             appState.personalRecords = recs
             appState.forms = formsResult
+            appState.unitPreferences = userProfile.unitPreferences
+            appState.authService.updateUserProfile(userProfile)
             appState.updateWeeklyProgress()
             appState.selectNextWorkout()
         } catch {
@@ -117,5 +121,60 @@ final class SyncEngine: ObservableObject {
             ))
             appState.forms[index] = form
         }
+    }
+
+    func pushUnitPreference(userId: String, key: String, value: String, appState: AppState) async throws {
+        try await firestore.updateUnitPreference(userId: userId, key: key, value: value)
+        var prefs = appState.unitPreferences
+        switch key {
+        case "weight": prefs.weight = value
+        case "mass": prefs.mass = value
+        case "circumference": prefs.circumference = value
+        case "distance": prefs.distance = value
+        case "time": prefs.time = value
+        default: break
+        }
+        appState.unitPreferences = prefs
+        if var user = appState.authService.currentUser {
+            user.unitPreferences = prefs
+            appState.authService.updateUserProfile(user)
+        }
+    }
+
+    func pushProgressPhotoSession(draft: FPProgressPhotoDraft, userId: String, appState: AppState) async throws {
+        var poses: [(poseType: String, imageUrl: String, existingId: String?)] = []
+        for (poseType, payload) in draft.poseImageData {
+            let imageUrl = try await FirebaseStorageService.shared.uploadProgressPhoto(
+                userId: userId,
+                sessionId: draft.sessionId,
+                poseType: poseType,
+                data: payload.data,
+                contentType: payload.contentType,
+                fileExtension: payload.fileExtension
+            )
+            poses.append((poseType, imageUrl, nil))
+        }
+
+        try await firestore.saveProgressSession(
+            userId: userId,
+            sessionId: draft.sessionId,
+            dateCreated: draft.dateCreated,
+            notes: draft.notes.isEmpty ? nil : draft.notes,
+            poses: poses
+        )
+
+        let pictures = poses.map { pose in
+            FPProgressPicture(
+                id: UUID().uuidString,
+                userId: userId,
+                sessionId: draft.sessionId,
+                poseType: pose.poseType,
+                imageUrl: pose.imageUrl,
+                dateCreated: draft.dateCreated,
+                notes: draft.notes.isEmpty ? nil : draft.notes
+            )
+        }
+        appState.allProgressPictures.insert(contentsOf: pictures, at: 0)
+        appState.progressSessions = FirestoreService.groupProgressSessions(appState.allProgressPictures)
     }
 }

@@ -10,6 +10,7 @@ struct FPUser: Identifiable, Codable, Equatable {
     var profilePictureUrl: String?
     var timezone: String?
     var coachHasProTools: Bool
+    var unitPreferences: FPUnitPreferences = FPUnitPreferences()
 
     var displayName: String {
         let name = "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
@@ -314,6 +315,82 @@ struct FPProgressSession: Identifiable, Codable, Equatable {
     var dateCreated: Date
     var pictures: [FPProgressPicture]
     var notes: String?
+}
+
+struct FPUnitPreferences: Codable, Equatable {
+    var weight: String = "KILOGRAM"
+    var mass: String = "KILOGRAM"
+    var circumference: String = "CENTIMETER"
+    var distance: String = "MILE"
+    var time: String = "SECOND"
+
+    static func fromFirestore(_ data: [String: Any]?) -> FPUnitPreferences {
+        guard let data else { return FPUnitPreferences() }
+        func read(_ key: String, default defaultValue: String) -> String {
+            let value = data[key] as? String ?? ""
+            return value.isEmpty ? defaultValue : value
+        }
+        return FPUnitPreferences(
+            weight: read("weight", default: "KILOGRAM"),
+            mass: read("mass", default: "KILOGRAM"),
+            circumference: read("circumference", default: "CENTIMETER"),
+            distance: read("distance", default: "MILE"),
+            time: read("time", default: "SECOND")
+        )
+    }
+
+    var massAbbreviation: String { mass == "POUND" ? "lb" : "kg" }
+}
+
+struct FPProgressPhotoDraft {
+    var sessionId = UUID().uuidString
+    var dateCreated = Date()
+    var notes = ""
+    var poseImageData: [String: (data: Data, contentType: String, fileExtension: String)] = [:]
+
+    var completedPoseCount: Int { poseImageData.count }
+}
+
+enum UnitConversionHelper {
+    static func massAbbreviation(_ unit: String) -> String { unit == "POUND" ? "lb" : "kg" }
+    static func circumferenceAbbreviation(_ unit: String) -> String { unit == "INCH" ? "in" : "cm" }
+
+    static func convertMassForDisplay(_ kg: Double, unit: String) -> Double {
+        unit == "POUND" ? (kg * 2.20462 * 100).rounded() / 100 : (kg * 100).rounded() / 100
+    }
+
+    static func convertCircumferenceForDisplay(_ cm: Double, unit: String) -> Double {
+        unit == "INCH" ? ((cm / 2.54) * 100).rounded() / 100 : (cm * 100).rounded() / 100
+    }
+
+    static func massToCanonical(_ value: Double, unit: String) -> Double {
+        unit == "POUND" ? value / 2.20462 : value
+    }
+
+    static func circumferenceToCanonical(_ value: Double, unit: String) -> Double {
+        unit == "INCH" ? value * 2.54 : value
+    }
+
+    static func displayUnit(for type: FPMeasurementTypeDef, prefs: FPUnitPreferences) -> String {
+        switch type.category {
+        case "Circumference": return circumferenceAbbreviation(prefs.circumference)
+        case "Body Composition" where type.unitType == "MASS": return massAbbreviation(prefs.mass)
+        default: return type.displayUnit
+        }
+    }
+
+    static func formatMeasurementValue(_ measurement: FPMeasurement, prefs: FPUnitPreferences) -> String {
+        let type = MeasurementCatalog.findById(measurement.typeId) ?? MeasurementCatalog.findByName(measurement.name)
+        if type?.category == "Circumference" {
+            let display = convertCircumferenceForDisplay(measurement.value, unit: prefs.circumference)
+            return String(format: "%.2g %@", display, circumferenceAbbreviation(prefs.circumference))
+        }
+        if type?.category == "Body Composition", type?.unitType == "MASS" {
+            let display = convertMassForDisplay(measurement.value, unit: prefs.mass)
+            return String(format: "%.2g %@", display, massAbbreviation(prefs.mass))
+        }
+        return String(format: "%.2g %@", measurement.value, measurement.unit)
+    }
 }
 
 // MARK: - Measurement
