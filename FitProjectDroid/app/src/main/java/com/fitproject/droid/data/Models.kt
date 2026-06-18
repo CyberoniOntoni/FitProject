@@ -307,11 +307,31 @@ data class FPProgressSession(
     val id: String get() = sessionId
 }
 
+enum class UnitSystem(val label: String) {
+    METRIC("Metric"),
+    IMPERIAL("Imperial");
+
+    fun toPreferences(existing: FPUnitPreferences = FPUnitPreferences()): FPUnitPreferences = when (this) {
+        METRIC -> existing.copy(
+            weight = "KILOGRAM",
+            mass = "KILOGRAM",
+            circumference = "CENTIMETER",
+            distance = "KILOMETER"
+        )
+        IMPERIAL -> existing.copy(
+            weight = "POUND",
+            mass = "POUND",
+            circumference = "INCH",
+            distance = "MILE"
+        )
+    }
+}
+
 data class FPUnitPreferences(
     var weight: String = "KILOGRAM",
     var mass: String = "KILOGRAM",
     var circumference: String = "CENTIMETER",
-    var distance: String = "MILE",
+    var distance: String = "KILOMETER",
     var time: String = "SECOND"
 ) {
     companion object {
@@ -325,13 +345,16 @@ data class FPUnitPreferences(
                 weight = read("weight", "KILOGRAM"),
                 mass = read("mass", "KILOGRAM"),
                 circumference = read("circumference", "CENTIMETER"),
-                distance = read("distance", "MILE"),
+                distance = read("distance", "KILOMETER"),
                 time = read("time", "SECOND")
             )
         }
     }
 
     val massAbbreviation: String get() = if (mass == "POUND") "lb" else "kg"
+
+    val unitSystem: UnitSystem
+        get() = if (distance == "KILOMETER") UnitSystem.METRIC else UnitSystem.IMPERIAL
 }
 
 data class PoseImagePayload(

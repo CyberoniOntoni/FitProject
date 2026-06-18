@@ -18,6 +18,7 @@ import com.fitproject.droid.data.FPProgressPicture
 import com.fitproject.droid.data.FPProgressSession
 import com.fitproject.droid.data.FPProgramWeek
 import com.fitproject.droid.data.FPUnitPreferences
+import com.fitproject.droid.data.UnitSystem
 import com.fitproject.droid.data.FPUser
 import com.fitproject.droid.data.FPWorkout
 import com.fitproject.droid.data.FPWorkoutLog
@@ -497,6 +498,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
         }
     }
 
+    fun updateUnitSystem(system: UnitSystem) {
+        val userId = _currentUser.value?.id ?: return
+        viewModelScope.launch {
+            syncEngine.pushUnitSystem(
+                userId = userId,
+                system = system,
+                callbacks = this@AppViewModel,
+                currentPrefs = _unitPreferences.value,
+                currentUser = _currentUser.value
+            )
+        }
+    }
+
     suspend fun submitForm(form: FPForm, answers: List<FPFormAnswer>): Result<Unit> {
         val userId = _currentUser.value?.id
             ?: return Result.failure(IllegalStateException("Not signed in"))
@@ -585,8 +599,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
     }
 
     override fun onUnitPreferencesUpdated(prefs: FPUnitPreferences, user: FPUser?) {
+        val distanceChanged = _unitPreferences.value.distance != prefs.distance
         _unitPreferences.value = prefs
         user?.let { _currentUser.value = it }
+        if (distanceChanged) {
+            refreshActivityMetrics()
+        }
     }
 
     override fun onProgressPicturesUpdated(

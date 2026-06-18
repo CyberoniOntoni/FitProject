@@ -102,11 +102,19 @@ class SyncEngine {
                 val formsResult = formsDeferred.await()
                 val userProfile = profileDeferred.await()
 
-                val allPrograms = creator.toMutableList()
-                for (item in assigned) {
-                    val program = item.program ?: continue
-                    if (allPrograms.none { it.id == program.id }) {
-                        allPrograms.add(program.copy(completedWorkouts = item.completedWorkouts))
+                val isCoach = userProfile?.coachHasProTools == true
+                val allPrograms = if (isCoach) {
+                    val programs = creator.toMutableList()
+                    for (item in assigned) {
+                        val program = item.program ?: continue
+                        if (programs.none { it.id == program.id }) {
+                            programs.add(program.copy(completedWorkouts = item.completedWorkouts))
+                        }
+                    }
+                    programs
+                } else {
+                    assigned.mapNotNull { item ->
+                        item.program?.copy(completedWorkouts = item.completedWorkouts)
                     }
                 }
 
@@ -204,6 +212,19 @@ class SyncEngine {
             "time" -> currentPrefs.copy(time = value)
             else -> currentPrefs
         }
+        val user = currentUser?.copy(unitPreferences = prefs)
+        callbacks.onUnitPreferencesUpdated(prefs, user)
+    }
+
+    suspend fun pushUnitSystem(
+        userId: String,
+        system: UnitSystem,
+        callbacks: SyncStateCallbacks,
+        currentPrefs: FPUnitPreferences,
+        currentUser: FPUser?
+    ) {
+        val prefs = system.toPreferences(currentPrefs)
+        firestore.updateUnitPreferences(userId, prefs)
         val user = currentUser?.copy(unitPreferences = prefs)
         callbacks.onUnitPreferencesUpdated(prefs, user)
     }

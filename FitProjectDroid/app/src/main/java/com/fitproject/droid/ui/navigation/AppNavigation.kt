@@ -198,7 +198,8 @@ fun ProfileNavHost(
                     unitPreferences = unitPreferences,
                     themeMode = themeMode,
                     onThemeModeChange = themeViewModel::setThemeMode,
-                    onUpdatePreference = appViewModel::updateUnitPreference
+                    onUpdatePreference = appViewModel::updateUnitPreference,
+                    onUpdateUnitSystem = appViewModel::updateUnitSystem
                 )
             }
         }

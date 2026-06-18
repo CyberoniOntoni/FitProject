@@ -47,6 +47,22 @@ class FirestoreService private constructor() {
             .await()
     }
 
+    suspend fun updateUnitPreferences(userId: String, prefs: FPUnitPreferences) {
+        db.collection("users").document(userId)
+            .update(
+                mapOf(
+                    "unitPreferences" to mapOf(
+                        "weight" to prefs.weight,
+                        "mass" to prefs.mass,
+                        "circumference" to prefs.circumference,
+                        "distance" to prefs.distance,
+                        "time" to prefs.time
+                    )
+                )
+            )
+            .await()
+    }
+
     suspend fun saveOnboardingProfile(
         userId: String,
         profile: com.fitproject.droid.data.onboarding.OnboardingProfile
@@ -86,7 +102,18 @@ class FirestoreService private constructor() {
     // MARK: - Programs
 
     suspend fun fetchAssignedPrograms(userId: String): List<FPAssignedProgram> {
-        val fromUserIds = runCatching {
+        val fromAssignments = runCatching {
+            db.collection("assignedPrograms")
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { doc -> parseAssignedProgramDocument(doc, userId) }
+        }.getOrElse { emptyList() }
+
+        if (fromAssignments.isNotEmpty()) return fromAssignments
+
+        return runCatching {
             db.collection("programs")
                 .whereArrayContains("userIds", userId)
                 .get()
@@ -103,33 +130,27 @@ class FirestoreService private constructor() {
                     )
                 }
         }.getOrElse { emptyList() }
+    }
 
-        if (fromUserIds.isNotEmpty()) return fromUserIds
-
-        return runCatching {
-            db.collection("assignedPrograms")
-                .whereEqualTo("userId", userId)
-                .get()
-                .await()
-                .documents
-                .mapNotNull { doc ->
-                    val data = doc.data ?: return@mapNotNull null
-                    val programId = data["programId"] as? String ?: ""
-                    var item = FPAssignedProgram(
-                        id = doc.id,
-                        programId = programId,
-                        userId = userId,
-                        coachId = data["coachId"] as? String,
-                        startDate = (data["startDate"] as? Timestamp)?.toDate(),
-                        currentWeek = (data["currentWeek"] as? Long)?.toInt() ?: 1,
-                        completedWorkouts = (data["completedWorkouts"] as? Long)?.toInt() ?: 0
-                    )
-                    if (programId.isNotEmpty()) {
-                        item = item.copy(program = runCatching { fetchProgram(programId) }.getOrNull())
-                    }
-                    item
-                }
-        }.getOrElse { emptyList() }
+    private suspend fun parseAssignedProgramDocument(
+        doc: DocumentSnapshot,
+        userId: String
+    ): FPAssignedProgram? {
+        val data = doc.data ?: return null
+        val programId = data["programId"] as? String ?: ""
+        var item = FPAssignedProgram(
+            id = doc.id,
+            programId = programId,
+            userId = userId,
+            coachId = data["coachId"] as? String,
+            startDate = (data["startDate"] as? Timestamp)?.toDate(),
+            currentWeek = (data["currentWeek"] as? Long)?.toInt() ?: 1,
+            completedWorkouts = (data["completedWorkouts"] as? Long)?.toInt() ?: 0
+        )
+        if (programId.isNotEmpty()) {
+            item = item.copy(program = runCatching { fetchProgram(programId) }.getOrNull())
+        }
+        return item
     }
 
     suspend fun fetchCreatorPrograms(userId: String): List<FPProgram> =

@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fitproject.droid.data.FPUnitPreferences
+import com.fitproject.droid.data.UnitSystem
 import com.fitproject.droid.ui.components.AppleGroupedSection
 import com.fitproject.droid.ui.components.FitnessSegmentedControl
 import com.fitproject.droid.ui.components.ScreenHeader
@@ -32,6 +33,7 @@ fun SettingsScreen(
     themeMode: AppThemeMode,
     onThemeModeChange: (AppThemeMode) -> Unit,
     onUpdatePreference: (key: String, value: String) -> Unit,
+    onUpdateUnitSystem: (UnitSystem) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -89,6 +91,24 @@ fun SettingsScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            "Unit System",
+                            style = BWSTypography.Subhead,
+                            fontWeight = FontWeight.SemiBold,
+                            color = BWSColors.TextPrimary
+                        )
+                        Text(
+                            "Metric uses kg, cm, and km. Imperial uses lb, in, and mi.",
+                            style = BWSTypography.Caption,
+                            color = BWSColors.TextSecondary
+                        )
+                        FitnessSegmentedControl(
+                            options = UnitSystem.entries.map { it.label },
+                            selectedIndex = UnitSystem.entries.indexOf(unitPreferences.unitSystem),
+                            onSelect = { index -> onUpdateUnitSystem(UnitSystem.entries[index]) }
+                        )
+                    }
                     PreferenceGroup(
                         title = "Body Weight / Mass",
                         options = listOf("kg" to "KILOGRAM", "lb" to "POUND"),
