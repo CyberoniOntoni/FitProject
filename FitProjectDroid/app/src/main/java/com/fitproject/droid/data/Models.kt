@@ -372,18 +372,21 @@ object UnitConversionHelper {
         else -> type.displayUnit
     }
 
+    fun formatDisplayNumber(value: Double): String =
+        if (value % 1.0 == 0.0) "%.0f".format(value) else "%.1f".format(value)
+
     fun formatMeasurementValue(measurement: FPMeasurement, prefs: FPUnitPreferences): String {
         val type = MeasurementCatalog.findById(measurement.typeId)
             ?: MeasurementCatalog.findByName(measurement.name)
         if (type?.category == "Circumference") {
             val display = convertCircumferenceForDisplay(measurement.value, prefs.circumference)
-            return String.format("%.2g %s", display, circumferenceAbbreviation(prefs.circumference))
+            return "${formatDisplayNumber(display)} ${circumferenceAbbreviation(prefs.circumference)}"
         }
         if (type?.category == "Body Composition" && type.unitType == "MASS") {
             val display = convertMassForDisplay(measurement.value, prefs.mass)
-            return String.format("%.2g %s", display, massAbbreviation(prefs.mass))
+            return "${formatDisplayNumber(display)} ${massAbbreviation(prefs.mass)}"
         }
-        return String.format("%.2g %s", measurement.value, measurement.unit)
+        return "${formatDisplayNumber(measurement.value)} ${measurement.unit}"
     }
 }
 

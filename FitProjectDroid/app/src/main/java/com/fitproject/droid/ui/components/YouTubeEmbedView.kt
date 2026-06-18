@@ -2,6 +2,7 @@ package com.fitproject.droid.ui.components
 
 import android.annotation.SuppressLint
 import android.net.Uri
+import android.view.View
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import androidx.compose.foundation.background
@@ -32,7 +33,7 @@ import coil.compose.AsyncImage
 import com.fitproject.droid.data.FPWorkoutExercise
 import com.fitproject.droid.ui.theme.BWSColors
 
-private const val YOUTUBE_REFERER = "https://com.fitproject.droid"
+private const val YOUTUBE_REFERER = "https://com.fitproject.droid/"
 
 object YouTubeIds {
     private val urlPattern = Regex(
@@ -49,7 +50,7 @@ object YouTubeIds {
 object YouTubeEmbedHtml {
     fun build(youtubeId: String, autoplay: Boolean = true): String {
         val autoplayParam = if (autoplay) "1" else "0"
-        val origin = Uri.encode(YOUTUBE_REFERER)
+        val origin = Uri.encode(YOUTUBE_REFERER.trimEnd('/'))
         return """
             <!DOCTYPE html>
             <html>
@@ -59,7 +60,7 @@ object YouTubeEmbedHtml {
             <meta name="referrer" content="strict-origin-when-cross-origin">
             <style>
             html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}
-            iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+            iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
             </style>
             </head>
             <body>
@@ -76,15 +77,6 @@ object YouTubeEmbedHtml {
     }
 }
 
-object YouTubeEmbedUrls {
-    fun embedUrl(youtubeId: String, autoplay: Boolean = true): String {
-        val autoplayParam = if (autoplay) "1" else "0"
-        val origin = Uri.encode(YOUTUBE_REFERER)
-        return "https://www.youtube-nocookie.com/embed/$youtubeId" +
-            "?autoplay=$autoplayParam&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=$origin"
-    }
-}
-
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun YouTubeEmbedView(
@@ -92,7 +84,7 @@ fun YouTubeEmbedView(
     modifier: Modifier = Modifier
 ) {
     val normalizedId = remember(youtubeId) { YouTubeIds.normalize(youtubeId) ?: youtubeId }
-    val embedUrl = remember(normalizedId) { YouTubeEmbedUrls.embedUrl(normalizedId) }
+    val html = remember(normalizedId) { YouTubeEmbedHtml.build(normalizedId) }
     var loadedId by remember { mutableStateOf<String?>(null) }
 
     AndroidView(
@@ -105,14 +97,21 @@ fun YouTubeEmbedView(
                 settings.useWideViewPort = true
                 webChromeClient = WebChromeClient()
                 setBackgroundColor(android.graphics.Color.BLACK)
+                setLayerType(View.LAYER_TYPE_HARDWARE, null)
+                overScrollMode = View.OVER_SCROLL_NEVER
+                isHorizontalScrollBarEnabled = false
+                isVerticalScrollBarEnabled = false
             }
         },
         update = { webView ->
             if (loadedId != normalizedId) {
                 loadedId = normalizedId
-                webView.loadUrl(
-                    embedUrl,
-                    mapOf("Referer" to YOUTUBE_REFERER)
+                webView.loadDataWithBaseURL(
+                    YOUTUBE_REFERER,
+                    html,
+                    "text/html",
+                    "UTF-8",
+                    null
                 )
             }
         },
@@ -133,13 +132,14 @@ fun ExerciseVideoPreview(
 
     var isPlaying by remember(exercise.id) { mutableStateOf(false) }
     var isLoading by remember(exercise.id) { mutableStateOf(false) }
+    val shape = RoundedCornerShape(BWSColors.CardRadius.dp)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(16f / 9f)
-            .clip(RoundedCornerShape(BWSColors.CardRadius.dp))
-            .background(BWSColors.SurfaceHighlight)
+            .then(if (isPlaying) Modifier else Modifier.clip(shape))
+            .background(BWSColors.SurfaceHighlight, shape)
     ) {
         when {
             isPlaying && youtubeId != null -> {
