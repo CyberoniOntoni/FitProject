@@ -1,0 +1,1 @@
+# FitProjectDroid ProGuard rules
