@@ -33,6 +33,7 @@ import com.fitproject.droid.ui.screens.SettingsScreen
 import com.fitproject.droid.ui.theme.BWSColors
 import com.fitproject.droid.ui.theme.BWSTypography
 import com.fitproject.droid.viewmodel.AppViewModel
+import com.fitproject.droid.viewmodel.ThemeViewModel
 
 enum class ProfileDestination(val route: String, val title: String) {
     PROFILE("profile", "Profile"),
@@ -42,17 +43,19 @@ enum class ProfileDestination(val route: String, val title: String) {
     MEASUREMENTS("measurements", "Body Measurements"),
     PERSONAL_RECORDS("personal_records", "Personal Records"),
     FORMS("forms", "Forms"),
-    SETTINGS("settings", "Unit Preferences")
+    SETTINGS("settings", "Settings")
 }
 
 @Composable
 fun ProfileNavHost(
     appViewModel: AppViewModel,
+    themeViewModel: ThemeViewModel,
     navController: NavHostController = rememberNavController(),
     onDismiss: () -> Unit,
     onFormTap: (FPForm) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val themeMode by themeViewModel.themeMode.collectAsStateWithLifecycle()
     val user by appViewModel.currentUser.collectAsStateWithLifecycle()
     val isSyncing by appViewModel.isSyncing.collectAsStateWithLifecycle()
     val lastSyncDate by appViewModel.lastSyncDate.collectAsStateWithLifecycle()
@@ -181,6 +184,8 @@ fun ProfileNavHost(
             ) {
                 SettingsScreen(
                     unitPreferences = unitPreferences,
+                    themeMode = themeMode,
+                    onThemeModeChange = themeViewModel::setThemeMode,
                     onUpdatePreference = appViewModel::updateUnitPreference
                 )
             }

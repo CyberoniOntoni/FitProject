@@ -141,8 +141,8 @@ fun ProfileScreen(
             AppleGroupedSection {
                 ProfileMenuRow(
                     icon = Icons.Default.Settings,
-                    title = "Unit Preferences",
-                    subtitle = "Weight, circumference & more · $massAbbreviation",
+                    title = "Settings",
+                    subtitle = "Theme, units & more · $massAbbreviation",
                     onClick = { onNavigate(ProfileDestination.SETTINGS) }
                 )
             }

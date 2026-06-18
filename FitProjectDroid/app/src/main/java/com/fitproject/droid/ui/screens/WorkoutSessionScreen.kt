@@ -271,7 +271,7 @@ private fun ExerciseProgressBar(progress: Float, modifier: Modifier = Modifier) 
             modifier = Modifier
                 .fillMaxWidth(progress.coerceIn(0f, 1f))
                 .height(3.dp)
-                .background(BWSColors.Accent)
+                .background(BWSColors.AccentGradient)
         )
     }
 }

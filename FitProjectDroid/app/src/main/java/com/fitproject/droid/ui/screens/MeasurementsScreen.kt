@@ -269,7 +269,7 @@ private fun OverviewCell(
     }
 }
 
-private val BodyweightChartColor = BWSColors.Accent
+
 
 @Composable
 private fun WeightTrendChart(
@@ -344,7 +344,7 @@ private fun WeightTrendChart(
                         formatDisplayValue(selected.value, bodyweightType, unitPreferences),
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = BodyweightChartColor
+                        color = BWSColors.Accent
                     )
                     Text(unitLabel, style = BWSTypography.Caption, color = BWSColors.TextSecondary)
                 }
@@ -380,6 +380,11 @@ private fun WeightTrendChart(
             val textMeasurer = rememberTextMeasurer()
             val yAxisLabelStyle = TextStyle(fontSize = 10.sp, color = BWSColors.TextSecondary)
             val xAxisLabelStyle = TextStyle(fontSize = 10.sp, color = BWSColors.TextTertiary)
+            val gridColor = BWSColors.Separator
+            val chartAccent = BWSColors.Accent
+            val chartAccentSecondary = BWSColors.AccentSecondary
+            val chartSurface = BWSColors.Surface
+            val chartTextTertiary = BWSColors.TextTertiary
 
             Canvas(
                 modifier = Modifier
@@ -421,7 +426,6 @@ private fun WeightTrendChart(
                     return Offset(x, y)
                 }
 
-                val gridColor = BWSColors.Separator
                 for (i in 0..3) {
                     val y = topPad + chartHeightInner * i / 3f
                     drawLine(
@@ -450,8 +454,8 @@ private fun WeightTrendChart(
                     path = fillPath,
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            BodyweightChartColor.copy(alpha = 0.28f),
-                            BodyweightChartColor.copy(alpha = 0.02f)
+                            chartAccent.copy(alpha = 0.28f),
+                            chartAccent.copy(alpha = 0.02f)
                         ),
                         startY = topPad,
                         endY = topPad + chartHeightInner
@@ -469,16 +473,16 @@ private fun WeightTrendChart(
                 }
                 drawPath(
                     path = linePath,
-                    color = BWSColors.Accent.copy(alpha = 0.15f),
+                    color = chartAccent.copy(alpha = 0.15f),
                     style = Stroke(width = 5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
                 )
                 drawPath(
                     path = linePath,
                     brush = Brush.horizontalGradient(
                         colors = listOf(
-                            BodyweightChartColor.copy(alpha = 0.65f),
-                            BodyweightChartColor,
-                            BWSColors.AccentSecondary.copy(alpha = 0.85f)
+                            chartAccent.copy(alpha = 0.65f),
+                            chartAccent,
+                            chartAccentSecondary.copy(alpha = 0.85f)
                         )
                     ),
                     style = Stroke(width = 2.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
@@ -493,7 +497,7 @@ private fun WeightTrendChart(
                     }
                     drawPath(
                         path = futurePath,
-                        color = BWSColors.TextTertiary.copy(alpha = 0.4f),
+                        color = chartTextTertiary.copy(alpha = 0.4f),
                         style = Stroke(width = 3f, cap = StrokeCap.Round, join = StrokeJoin.Round)
                     )
                 }
@@ -507,13 +511,13 @@ private fun WeightTrendChart(
                     }
                     drawPath(
                         path = highlightPath,
-                        color = BodyweightChartColor.copy(alpha = 0.18f),
+                        color = chartAccent.copy(alpha = 0.18f),
                         style = Stroke(width = 12f, cap = StrokeCap.Round, join = StrokeJoin.Round)
                     )
                     drawPath(
                         path = highlightPath,
                         brush = Brush.horizontalGradient(
-                            colors = listOf(BodyweightChartColor.copy(alpha = 0.7f), BodyweightChartColor)
+                            colors = listOf(chartAccent.copy(alpha = 0.7f), chartAccent)
                         ),
                         style = Stroke(width = 4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
                     )
@@ -521,7 +525,7 @@ private fun WeightTrendChart(
 
                 val selectedPoint = points[selectedIndex]
                 drawLine(
-                    color = BodyweightChartColor.copy(alpha = 0.35f),
+                    color = chartAccent.copy(alpha = 0.35f),
                     start = Offset(selectedPoint.x, topPad),
                     end = Offset(selectedPoint.x, topPad + chartHeightInner),
                     strokeWidth = 1.5f,
@@ -538,18 +542,18 @@ private fun WeightTrendChart(
                     }
                     if (isSelected) {
                         drawCircle(
-                            color = BodyweightChartColor.copy(alpha = 0.25f),
+                            color = chartAccent.copy(alpha = 0.25f),
                             radius = 14f,
                             center = point
                         )
                     }
                     drawCircle(
-                        color = BodyweightChartColor.copy(alpha = alpha),
+                        color = chartAccent.copy(alpha = alpha),
                         radius = radius,
                         center = point
                     )
                     drawCircle(
-                        color = BWSColors.Surface,
+                        color = chartSurface,
                         radius = radius * 0.45f,
                         center = point
                     )

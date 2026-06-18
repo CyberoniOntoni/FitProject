@@ -82,14 +82,17 @@ import com.fitproject.droid.ui.theme.BWSColors
 import com.fitproject.droid.ui.theme.BWSTypography
 import com.fitproject.droid.ui.theme.FitProjectTheme
 import com.fitproject.droid.viewmodel.AppViewModel
+import com.fitproject.droid.viewmodel.ThemeViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            FitProjectTheme {
-                FitProjectRoot()
+            val themeViewModel: ThemeViewModel = viewModel()
+            val themeMode by themeViewModel.themeMode.collectAsStateWithLifecycle()
+            FitProjectTheme(themeMode = themeMode) {
+                FitProjectRoot(themeViewModel = themeViewModel)
             }
         }
     }
@@ -98,7 +101,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun FitProjectRoot(
     appViewModel: AppViewModel = viewModel(),
-    onboardingViewModel: OnboardingViewModel = viewModel()
+    onboardingViewModel: OnboardingViewModel = viewModel(),
+    themeViewModel: ThemeViewModel = viewModel()
 ) {
     val isAuthenticated by appViewModel.isAuthenticated.collectAsStateWithLifecycle()
     val needsOnboarding by appViewModel.needsOnboarding.collectAsStateWithLifecycle()
@@ -167,7 +171,7 @@ fun FitProjectRoot(
             )
         }
         composable("main") {
-            MainShell(appViewModel = appViewModel)
+            MainShell(appViewModel = appViewModel, themeViewModel = themeViewModel)
         }
         composable("workout") {
             activeSession?.let { session ->
@@ -279,7 +283,10 @@ fun LoginScreen(appViewModel: AppViewModel) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainShell(appViewModel: AppViewModel) {
+fun MainShell(
+    appViewModel: AppViewModel,
+    themeViewModel: ThemeViewModel
+) {
     val selectedTab by appViewModel.selectedTab.collectAsStateWithLifecycle()
     val showProfileSheet by appViewModel.showProfileSheet.collectAsStateWithLifecycle()
 
@@ -452,6 +459,7 @@ fun MainShell(appViewModel: AppViewModel) {
                 ) {
                     ProfileNavHost(
                         appViewModel = appViewModel,
+                        themeViewModel = themeViewModel,
                         onDismiss = { appViewModel.setShowProfileSheet(false) },
                         onFormTap = { form ->
                             appViewModel.setShowProfileSheet(false)

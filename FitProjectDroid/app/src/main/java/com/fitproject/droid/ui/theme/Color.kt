@@ -1,43 +1,81 @@
 package com.fitproject.droid.ui.theme
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-/** Apple Human Interface Guidelines — light mode palette */
+val LocalFitnessColors = staticCompositionLocalOf { FitnessDarkScheme }
+
 object BWSColors {
-    val Background = Color(0xFFF2F2F7)
-    val Surface = Color.White
-    val SurfaceElevated = Color.White
-    val SurfaceHighlight = Color(0xFFE5E5EA)
-    val Separator = Color(0xFF3C3C43).copy(alpha = 0.12f)
-    val Fill = Color(0xFF787880).copy(alpha = 0.12f)
+    const val CardRadius = 14f
+    const val ButtonRadius = 12f
+    const val TabBarHeight = 84f
 
-    val Accent = Color(0xFF007AFF)
-    val AccentSecondary = Color(0xFF5856D6)
-    val AccentGradient = Brush.horizontalGradient(
-        colors = listOf(Color(0xFF007AFF), Color(0xFF0056CC))
-    )
+    val isDark: Boolean
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.isDark
 
-    val TextPrimary = Color(0xFF000000)
-    val TextSecondary = Color(0xFF3C3C43).copy(alpha = 0.6f)
-    val TextTertiary = Color(0xFF3C3C43).copy(alpha = 0.3f)
+    val Background: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.background
+    val Surface: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.surface
+    val SurfaceElevated: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.surfaceElevated
+    val SurfaceHighlight: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.surfaceHighlight
+    val Separator: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.separator
+    val Fill: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.fill
 
-    val Success = Color(0xFF34C759)
-    val Warning = Color(0xFFFF9500)
-    val Error = Color(0xFFFF3B30)
-    val PrGold = Color(0xFFFF9500)
+    val Accent: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.accent
+    val OnAccent: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.onAccent
+    val AccentSecondary: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.accentSecondary
+    val AccentGradient: Brush
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.accentGradient
 
-    // Metric colors — softened for light backgrounds
-    val RepsColor = Color(0xFF5856D6)
-    val WeightColor = Color(0xFFFF3B30)
-    val RestColor = Color(0xFF34C759)
-    val RpeColor = Color(0xFFFF9500)
-    val TempoColor = Color(0xFFAF52DE)
-    val TimeColor = Color(0xFF007AFF)
+    val TextPrimary: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.textPrimary
+    val TextSecondary: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.textSecondary
+    val TextTertiary: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.textTertiary
 
-    val CardRadius = 12f
-    val ButtonRadius = 12f
-    val TabBarHeight = 84f
+    val Success: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.success
+    val Warning: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.warning
+    val Error: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.error
+    val PrGold: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.prGold
+
+    val RingMove: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.ringMove
+    val RingExercise: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.ringExercise
+    val RingStand: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.ringStand
+
+    val RepsColor: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.repsColor
+    val WeightColor: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.weightColor
+    val RestColor: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.restColor
+    val RpeColor: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.rpeColor
+    val TempoColor: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.tempoColor
+    val TimeColor: Color
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.timeColor
+
+    val UseCardShadow: Boolean
+        @Composable @ReadOnlyComposable get() = LocalFitnessColors.current.useCardShadow
 }
 
 fun Color.Companion.fromHex(hex: String): Color {
@@ -45,12 +83,16 @@ fun Color.Companion.fromHex(hex: String): Color {
     return Color(0xFF000000L or cleanHex.toLong(16))
 }
 
-fun metricColor(name: String): Color = when (name) {
-    "Reps" -> BWSColors.RepsColor
-    "Weight" -> BWSColors.WeightColor
-    "RPE" -> BWSColors.RpeColor
-    "Rest" -> BWSColors.RestColor
-    "Tempo" -> BWSColors.TempoColor
-    "Time" -> BWSColors.TimeColor
-    else -> BWSColors.TextSecondary
+@Composable
+fun metricColor(name: String): Color {
+    val c = LocalFitnessColors.current
+    return when (name) {
+        "Reps" -> c.repsColor
+        "Weight" -> c.weightColor
+        "RPE" -> c.rpeColor
+        "Rest" -> c.restColor
+        "Tempo" -> c.tempoColor
+        "Time" -> c.timeColor
+        else -> c.textSecondary
+    }
 }

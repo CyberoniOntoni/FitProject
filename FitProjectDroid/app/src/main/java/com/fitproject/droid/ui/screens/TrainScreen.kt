@@ -65,8 +65,8 @@ fun TrainScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         ScreenHeader(
-            title = "$greeting, ${userFirstName.ifEmpty { "Athlete" }}",
-            subtitle = "Ready to train?"
+            title = "Summary",
+            subtitle = "$greeting, ${userFirstName.ifEmpty { "Athlete" }}"
         )
 
         BWSCard {
@@ -75,17 +75,26 @@ fun TrainScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text("This Week", style = BWSTypography.Caption, color = BWSColors.TextSecondary)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("THIS WEEK", style = BWSTypography.RingLabel, color = BWSColors.TextSecondary)
                     Text(
-                        "$weeklyCompleted / $weeklyGoal workouts",
-                        style = BWSTypography.Headline,
+                        "$weeklyCompleted",
+                        style = BWSTypography.Metric,
                         color = BWSColors.TextPrimary
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "of $weeklyGoal workouts",
+                        style = BWSTypography.Caption,
+                        color = BWSColors.TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
                     WeekProgressDots(completed = weeklyCompleted, total = weeklyGoal)
                 }
-                ProgressRing(progress = weeklyCompleted.toDouble() / maxOf(weeklyGoal, 1))
+                ProgressRing(
+                    progress = weeklyCompleted.toDouble() / maxOf(weeklyGoal, 1),
+                    size = 72.dp,
+                    lineWidth = 6.dp
+                )
             }
         }
 

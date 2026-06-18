@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,19 +32,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
-/** Aliases for onboarding — same tokens as BWSColors */
 object AppleColors {
-    val Background = BWSColors.Background
-    val Card = BWSColors.Surface
-    val Label = BWSColors.TextPrimary
-    val SecondaryLabel = BWSColors.TextSecondary
-    val TertiaryLabel = BWSColors.TextTertiary
-    val Accent = BWSColors.Accent
-    val AccentPressed = Color(0xFF0056CC)
-    val Separator = BWSColors.Separator
-    val Fill = BWSColors.Fill
-    val Destructive = BWSColors.Error
-    val Success = BWSColors.Success
+    val Background: Color @Composable @ReadOnlyComposable get() = BWSColors.Background
+    val Card: Color @Composable @ReadOnlyComposable get() = BWSColors.Surface
+    val Label: Color @Composable @ReadOnlyComposable get() = BWSColors.TextPrimary
+    val SecondaryLabel: Color @Composable @ReadOnlyComposable get() = BWSColors.TextSecondary
+    val TertiaryLabel: Color @Composable @ReadOnlyComposable get() = BWSColors.TextTertiary
+    val Accent: Color @Composable @ReadOnlyComposable get() = BWSColors.Accent
+    val AccentPressed: Color @Composable @ReadOnlyComposable get() = Color(0xFF0056CC)
+    val Separator: Color @Composable @ReadOnlyComposable get() = BWSColors.Separator
+    val Fill: Color @Composable @ReadOnlyComposable get() = BWSColors.Fill
+    val Destructive: Color @Composable @ReadOnlyComposable get() = BWSColors.Error
+    val Success: Color @Composable @ReadOnlyComposable get() = BWSColors.Success
 }
 
 object AppleTypography {
@@ -110,7 +110,11 @@ fun AppleSelectionCard(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(if (selected) 1.dp else 0.dp, RoundedCornerShape(12.dp))
+            .then(
+                if (BWSColors.UseCardShadow && selected) {
+                    Modifier.shadow(1.dp, RoundedCornerShape(12.dp))
+                } else Modifier
+            )
             .clip(RoundedCornerShape(12.dp))
             .background(AppleColors.Card)
             .border(
@@ -216,7 +220,7 @@ fun AppleChip(
         Text(
             label,
             style = AppleTypography.Subhead,
-            color = if (selected) Color.White else AppleColors.Label,
+            color = if (selected) BWSColors.OnAccent else AppleColors.Label,
             textAlign = TextAlign.Center
         )
     }
