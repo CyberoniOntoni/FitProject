@@ -253,18 +253,31 @@ private fun DobStep(profile: OnboardingProfile, update: (OnboardingProfile.() ->
 
 @Composable
 private fun HeightWeightStep(profile: OnboardingProfile, update: (OnboardingProfile.() -> Unit) -> Unit) {
+    var heightText by remember {
+        mutableStateOf(profile.heightCm?.let { formatWholeNumber(it) } ?: "")
+    }
+    var weightText by remember {
+        mutableStateOf(profile.weightKg?.let { formatDecimalInput(it) } ?: "")
+    }
+
     AppleStepHeader(title = "Height & weight", subtitle = "Metric units for accurate calculations.")
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         AppleNumericField(
-            value = profile.heightCm?.let { "%.0f".format(it) } ?: "",
-            onValueChange = { v -> update { heightCm = v.replace(",", ".").toDoubleOrNull() } },
+            value = heightText,
+            onValueChange = { v ->
+                heightText = v.filter { it.isDigit() || it == '.' || it == ',' }
+                update { heightCm = heightText.replace(",", ".").toDoubleOrNull() }
+            },
             label = "Height",
             suffix = "cm",
             modifier = Modifier.weight(1f)
         )
         AppleNumericField(
-            value = profile.weightKg?.let { "%.1f".format(it) } ?: "",
-            onValueChange = { v -> update { weightKg = v.replace(",", ".").toDoubleOrNull() } },
+            value = weightText,
+            onValueChange = { v ->
+                weightText = v.filter { it.isDigit() || it == '.' || it == ',' }
+                update { weightKg = weightText.replace(",", ".").toDoubleOrNull() }
+            },
             label = "Weight",
             suffix = "kg",
             modifier = Modifier.weight(1f)
@@ -329,21 +342,37 @@ private fun BodyFatPhotoStep(profile: OnboardingProfile, update: (OnboardingProf
 
 @Composable
 private fun BodyFatMeasureStep(profile: OnboardingProfile, update: (OnboardingProfile.() -> Unit) -> Unit) {
+    var neckText by remember {
+        mutableStateOf(profile.neckCm?.let { formatDecimalInput(it) } ?: "")
+    }
+    var waistText by remember {
+        mutableStateOf(profile.waistCm?.let { formatDecimalInput(it) } ?: "")
+    }
+    var hipText by remember {
+        mutableStateOf(profile.hipCm?.let { formatDecimalInput(it) } ?: "")
+    }
+
     AppleStepHeader(
         title = "Measurements",
         subtitle = "Measure in cm at the narrowest neck, navel-level waist${if (profile.gender == Gender.FEMALE) ", and hips" else ""}."
     )
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
         AppleNumericField(
-            value = profile.neckCm?.let { "%.1f".format(it) } ?: "",
-            onValueChange = { v -> update { neckCm = v.replace(",", ".").toDoubleOrNull() } },
+            value = neckText,
+            onValueChange = { v ->
+                neckText = v.filter { it.isDigit() || it == '.' || it == ',' }
+                update { neckCm = neckText.replace(",", ".").toDoubleOrNull() }
+            },
             label = "Neck",
             suffix = "cm",
             modifier = Modifier.weight(1f)
         )
         AppleNumericField(
-            value = profile.waistCm?.let { "%.1f".format(it) } ?: "",
-            onValueChange = { v -> update { waistCm = v.replace(",", ".").toDoubleOrNull() } },
+            value = waistText,
+            onValueChange = { v ->
+                waistText = v.filter { it.isDigit() || it == '.' || it == ',' }
+                update { waistCm = waistText.replace(",", ".").toDoubleOrNull() }
+            },
             label = "Waist",
             suffix = "cm",
             modifier = Modifier.weight(1f)
@@ -351,8 +380,11 @@ private fun BodyFatMeasureStep(profile: OnboardingProfile, update: (OnboardingPr
     }
     if (profile.gender == Gender.FEMALE) {
         AppleNumericField(
-            value = profile.hipCm?.let { "%.1f".format(it) } ?: "",
-            onValueChange = { v -> update { hipCm = v.replace(",", ".").toDoubleOrNull() } },
+            value = hipText,
+            onValueChange = { v ->
+                hipText = v.filter { it.isDigit() || it == '.' || it == ',' }
+                update { hipCm = hipText.replace(",", ".").toDoubleOrNull() }
+            },
             label = "Hips",
             suffix = "cm"
         )
@@ -558,4 +590,12 @@ private fun GeneratePlanStep(
             color = AppleColors.SecondaryLabel
         )
     }
+}
+
+private fun formatWholeNumber(value: Double): String =
+    if (value % 1.0 == 0.0) "%.0f".format(value) else value.toString()
+
+private fun formatDecimalInput(value: Double): String {
+    val rounded = "%.1f".format(value)
+    return if (rounded.endsWith(".0")) rounded.dropLast(2) else rounded
 }

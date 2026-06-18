@@ -60,7 +60,7 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun updateProfile(block: OnboardingProfile.() -> Unit) {
-        _profile.update { it.apply(block) }
+        _profile.update { current -> current.copy().apply(block) }
     }
 
     fun goBack() {

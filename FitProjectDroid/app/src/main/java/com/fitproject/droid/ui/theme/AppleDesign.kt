@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -156,12 +158,17 @@ fun AppleTextField(
             .background(AppleColors.Card)
             .border(0.5.dp, AppleColors.Separator, RoundedCornerShape(12.dp))
             .padding(horizontal = 16.dp, vertical = 14.dp),
-        decorationBox = { inner ->
-            Box {
+        decorationBox = { innerTextField ->
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.CenterStart
+            ) {
                 if (value.isEmpty()) {
                     Text(placeholder, style = AppleTypography.Body, color = AppleColors.TertiaryLabel)
                 }
-                inner()
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    innerTextField()
+                }
             }
         }
     )
@@ -190,7 +197,19 @@ fun AppleNumericField(
                 value = value,
                 onValueChange = onValueChange,
                 textStyle = AppleTypography.Title.copy(color = AppleColors.Label),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        innerTextField()
+                    }
+                }
             )
             Text(suffix, style = AppleTypography.Subhead, color = AppleColors.SecondaryLabel)
         }
