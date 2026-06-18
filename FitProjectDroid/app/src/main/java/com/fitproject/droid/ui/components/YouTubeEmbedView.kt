@@ -5,6 +5,7 @@ import android.net.Uri
 import android.view.View
 import android.webkit.WebChromeClient
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -33,7 +34,8 @@ import coil.compose.AsyncImage
 import com.fitproject.droid.data.FPWorkoutExercise
 import com.fitproject.droid.ui.theme.BWSColors
 
-private const val YOUTUBE_REFERER = "https://com.fitproject.droid/"
+// YouTube requires the app ID as referer on Android WebView (not a custom domain).
+private const val YOUTUBE_REFERER = "https://com.fitproject.droid"
 
 object YouTubeIds {
     private val urlPattern = Regex(
@@ -47,33 +49,12 @@ object YouTubeIds {
     }
 }
 
-object YouTubeEmbedHtml {
-    fun build(youtubeId: String, autoplay: Boolean = true): String {
+object YouTubeEmbedUrls {
+    fun embedUrl(youtubeId: String, autoplay: Boolean = true): String {
         val autoplayParam = if (autoplay) "1" else "0"
-        val origin = Uri.encode(YOUTUBE_REFERER.trimEnd('/'))
-        return """
-            <!DOCTYPE html>
-            <html>
-            <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <meta name="referrer" content="strict-origin-when-cross-origin">
-            <style>
-            html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}
-            iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
-            </style>
-            </head>
-            <body>
-            <iframe
-              src="https://www.youtube-nocookie.com/embed/$youtubeId?autoplay=$autoplayParam&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=$origin"
-              title="Exercise video"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerpolicy="strict-origin"
-              allowfullscreen>
-            </iframe>
-            </body>
-            </html>
-        """.trimIndent()
+        val origin = Uri.encode(YOUTUBE_REFERER)
+        return "https://www.youtube-nocookie.com/embed/$youtubeId" +
+            "?autoplay=$autoplayParam&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=$origin"
     }
 }
 
@@ -84,7 +65,7 @@ fun YouTubeEmbedView(
     modifier: Modifier = Modifier
 ) {
     val normalizedId = remember(youtubeId) { YouTubeIds.normalize(youtubeId) ?: youtubeId }
-    val html = remember(normalizedId) { YouTubeEmbedHtml.build(normalizedId) }
+    val embedUrl = remember(normalizedId) { YouTubeEmbedUrls.embedUrl(normalizedId) }
     var loadedId by remember { mutableStateOf<String?>(null) }
 
     AndroidView(
@@ -96,8 +77,12 @@ fun YouTubeEmbedView(
                 settings.loadWithOverviewMode = true
                 settings.useWideViewPort = true
                 webChromeClient = WebChromeClient()
+                webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        view?.setBackgroundColor(android.graphics.Color.BLACK)
+                    }
+                }
                 setBackgroundColor(android.graphics.Color.BLACK)
-                setLayerType(View.LAYER_TYPE_HARDWARE, null)
                 overScrollMode = View.OVER_SCROLL_NEVER
                 isHorizontalScrollBarEnabled = false
                 isVerticalScrollBarEnabled = false
@@ -106,12 +91,10 @@ fun YouTubeEmbedView(
         update = { webView ->
             if (loadedId != normalizedId) {
                 loadedId = normalizedId
-                webView.loadDataWithBaseURL(
-                    YOUTUBE_REFERER,
-                    html,
-                    "text/html",
-                    "UTF-8",
-                    null
+                webView.setBackgroundColor(android.graphics.Color.BLACK)
+                webView.loadUrl(
+                    embedUrl,
+                    mapOf("Referer" to YOUTUBE_REFERER)
                 )
             }
         },
@@ -138,6 +121,7 @@ fun ExerciseVideoPreview(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(16f / 9f)
+            // Clipping WebView causes a white/black compositing bug on Android — skip while playing.
             .then(if (isPlaying) Modifier else Modifier.clip(shape))
             .background(BWSColors.SurfaceHighlight, shape)
     ) {
