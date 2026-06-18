@@ -1,12 +1,12 @@
 package com.fitproject.droid.ui.components
 
 import android.annotation.SuppressLint
-import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import android.view.View
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,18 +34,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.webkit.WebViewAssetLoader
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import com.fitproject.droid.data.FPWorkoutExercise
 import com.fitproject.droid.data.FirebaseConfig
 import com.fitproject.droid.ui.theme.BWSColors
-import java.io.File
-import java.net.URLDecoder
 
-private const val YOUTUBE_HOST = FirebaseConfig.PackageName
-private const val YOUTUBE_REFERER = "https://$YOUTUBE_HOST/"
-private const val PLAYER_FILE = "player.html"
-private const val WEBVIEW_DIR = "youtube-webview"
+private const val YOUTUBE_REFERER = "https://${FirebaseConfig.PackageName}"
 
 object YouTubeIds {
     private val urlPattern = Regex(
@@ -61,7 +59,8 @@ object YouTubeIds {
 object YouTubeEmbedHtml {
     fun build(youtubeId: String, autoplay: Boolean = true): String {
         val autoplayParam = if (autoplay) "1" else "0"
-        val origin = Uri.encode("https://$YOUTUBE_HOST")
+        val origin = Uri.encode(YOUTUBE_REFERER)
+        val widgetReferrer = Uri.encode(YOUTUBE_REFERER)
         return """
             <!DOCTYPE html>
             <html>
@@ -76,7 +75,7 @@ object YouTubeEmbedHtml {
             </head>
             <body>
             <iframe
-              src="https://www.youtube-nocookie.com/embed/$youtubeId?autoplay=$autoplayParam&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=$origin"
+              src="https://www.youtube-nocookie.com/embed/$youtubeId?autoplay=$autoplayParam&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=$origin&widget_referrer=$widgetReferrer"
               title="Exercise video"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               referrerpolicy="strict-origin"
@@ -88,40 +87,20 @@ object YouTubeEmbedHtml {
     }
 }
 
-private class DirectoryPathHandler(
-    private val directory: File
-) : WebViewAssetLoader.PathHandler {
-    override fun handle(path: String): WebResourceResponse? {
-        val safePath = URLDecoder.decode(path, Charsets.UTF_8.name()).removePrefix("/")
-        val target = File(directory, safePath)
-        if (!target.canonicalPath.startsWith(directory.canonicalPath)) return null
-        if (!target.exists() || !target.isFile) return null
-        val mime = when (target.extension.lowercase()) {
-            "html" -> "text/html"
-            "js" -> "application/javascript"
-            "css" -> "text/css"
-            else -> "application/octet-stream"
-        }
-        return WebResourceResponse(mime, "UTF-8", target.inputStream())
+object YouTubeEmbedUrls {
+    fun embedUrl(youtubeId: String, autoplay: Boolean = true): String {
+        val autoplayParam = if (autoplay) "1" else "0"
+        val origin = Uri.encode(YOUTUBE_REFERER)
+        val widgetReferrer = Uri.encode(YOUTUBE_REFERER)
+        return "https://www.youtube-nocookie.com/embed/$youtubeId" +
+            "?autoplay=$autoplayParam&rel=0&modestbranding=1&playsinline=1&enablejsapi=1" +
+            "&origin=$origin&widget_referrer=$widgetReferrer"
     }
 }
 
-private object YouTubeWebViewHost {
-    fun webFolder(context: Context): File =
-        File(context.filesDir, WEBVIEW_DIR).apply { mkdirs() }
-
-    fun writePlayerHtml(context: Context, youtubeId: String) {
-        val file = File(webFolder(context), PLAYER_FILE)
-        file.writeText(YouTubeEmbedHtml.build(youtubeId))
-    }
-
-    fun playerUrl(): String = "https://$YOUTUBE_HOST/$PLAYER_FILE"
-
-    fun createAssetLoader(context: Context): WebViewAssetLoader =
-        WebViewAssetLoader.Builder()
-            .setDomain(YOUTUBE_HOST)
-            .addPathHandler("/", DirectoryPathHandler(webFolder(context)))
-            .build()
+private enum class YouTubeLoadMode {
+    HtmlEmbed,
+    DirectEmbed
 }
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -131,11 +110,31 @@ fun YouTubeEmbedView(
     modifier: Modifier = Modifier
 ) {
     val normalizedId = remember(youtubeId) { YouTubeIds.normalize(youtubeId) ?: youtubeId }
+    val html = remember(normalizedId) { YouTubeEmbedHtml.build(normalizedId) }
+    val directUrl = remember(normalizedId) { YouTubeEmbedUrls.embedUrl(normalizedId) }
     var loadedId by remember { mutableStateOf<String?>(null) }
+    var webViewRef by remember { mutableStateOf<WebView?>(null) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+
+    DisposableEffect(lifecycle, webViewRef) {
+        val webView = webViewRef
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> webView?.onResume()
+                Lifecycle.Event.ON_PAUSE -> webView?.onPause()
+                else -> Unit
+            }
+        }
+        lifecycle.addObserver(observer)
+        webView?.onResume()
+        onDispose {
+            lifecycle.removeObserver(observer)
+            webView?.onPause()
+        }
+    }
 
     AndroidView(
         factory = { context ->
-            val assetLoader = YouTubeWebViewHost.createAssetLoader(context)
             WebView(context).apply {
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
@@ -143,29 +142,59 @@ fun YouTubeEmbedView(
                 settings.loadWithOverviewMode = true
                 settings.useWideViewPort = true
                 webChromeClient = WebChromeClient()
-                webViewClient = object : WebViewClient() {
-                    override fun shouldInterceptRequest(
-                        view: WebView,
-                        request: WebResourceRequest
-                    ): WebResourceResponse? =
-                        assetLoader.shouldInterceptRequest(request.url)
-
-                    override fun onPageFinished(view: WebView?, url: String?) {
-                        view?.setBackgroundColor(android.graphics.Color.BLACK)
-                    }
-                }
                 setBackgroundColor(android.graphics.Color.BLACK)
                 overScrollMode = View.OVER_SCROLL_NEVER
                 isHorizontalScrollBarEnabled = false
                 isVerticalScrollBarEnabled = false
-            }
+            }.also { webViewRef = it }
         },
         update = { webView ->
+            val fallbackUrl = directUrl
+            webView.webViewClient = object : WebViewClient() {
+                override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                    view?.setBackgroundColor(android.graphics.Color.BLACK)
+                }
+
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    view?.setBackgroundColor(android.graphics.Color.BLACK)
+                }
+
+                override fun onReceivedError(
+                    view: WebView,
+                    request: WebResourceRequest,
+                    error: WebResourceError
+                ) {
+                    if (!request.isForMainFrame) return
+                    if (view.tag == YouTubeLoadMode.HtmlEmbed) return
+                    view.tag = YouTubeLoadMode.HtmlEmbed
+                    view.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+                    view.loadDataWithBaseURL(
+                        YOUTUBE_REFERER,
+                        html,
+                        "text/html",
+                        "UTF-8",
+                        null
+                    )
+                }
+            }
+
             if (loadedId != normalizedId) {
                 loadedId = normalizedId
-                YouTubeWebViewHost.writePlayerHtml(webView.context, normalizedId)
+                webView.tag = YouTubeLoadMode.DirectEmbed
+                webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
                 webView.setBackgroundColor(android.graphics.Color.BLACK)
-                webView.loadUrl(YouTubeWebViewHost.playerUrl())
+                webView.loadUrl(
+                    fallbackUrl,
+                    mapOf("Referer" to YOUTUBE_REFERER)
+                )
+            }
+        },
+        onRelease = { webView ->
+            webView.stopLoading()
+            webView.onPause()
+            webView.destroy()
+            if (webViewRef === webView) {
+                webViewRef = null
             }
         },
         modifier = modifier.background(Color.Black)
