@@ -7,7 +7,7 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:921130967436:android:fitprojectdroid0001",
+        "mobilesdk_app_id": "1:921130967436:android:REPLACE_WITH_FIREBASE_CONSOLE_HASH",
         "android_client_info": {
           "package_name": "com.fitproject.droid"
         }
