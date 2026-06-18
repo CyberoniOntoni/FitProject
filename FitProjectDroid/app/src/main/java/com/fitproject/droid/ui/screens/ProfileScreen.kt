@@ -190,7 +190,7 @@ private fun ProfileHeader(user: FPUser?) {
         ) {
             if (!user?.profilePictureUrl.isNullOrEmpty()) {
                 AsyncImage(
-                    model = user?.profilePictureUrl,
+                    model = user.profilePictureUrl,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop

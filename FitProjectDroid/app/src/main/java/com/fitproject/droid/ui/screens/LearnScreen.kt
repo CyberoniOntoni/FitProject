@@ -20,7 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -152,7 +152,7 @@ private fun LearnEmptyState() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Icon(Icons.Default.MenuBook, null, tint = BWSColors.TextTertiary, modifier = Modifier.size(48.dp))
+        Icon(Icons.AutoMirrored.Filled.MenuBook, null, tint = BWSColors.TextTertiary, modifier = Modifier.size(48.dp))
         Text("No content yet", style = BWSTypography.Headline, color = BWSColors.TextPrimary)
         Text(
             "Guides, articles, and check-in forms from your coach will appear here.",

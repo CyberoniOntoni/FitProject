@@ -19,7 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -192,7 +192,7 @@ private fun HistoryLogCard(
                         }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Icon(Icons.Default.List, null, tint = BWSColors.TextSecondary, modifier = Modifier.size(14.dp))
+                        Icon(Icons.AutoMirrored.Filled.List, null, tint = BWSColors.TextSecondary, modifier = Modifier.size(14.dp))
                         Text("${log.exercises.size}", style = BWSTypography.Caption, color = BWSColors.TextSecondary)
                     }
                 }

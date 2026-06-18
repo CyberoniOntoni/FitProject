@@ -15,6 +15,9 @@ import java.util.Calendar
 import java.util.Date
 import java.util.UUID
 
+@Suppress("UNCHECKED_CAST")
+private fun firestoreMap(value: Any?): Map<String, Any>? = value as? Map<String, Any>
+
 class FirestoreService private constructor() {
     private val db = Firebase.firestore
     private val listenerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -33,7 +36,7 @@ class FirestoreService private constructor() {
             timezone = data["timezone"] as? String,
             coachHasProTools = data["coachHasProTools"] as? Boolean ?: false,
             unitPreferences = FPUnitPreferences.fromFirestore(
-                data["unitPreferences"] as? Map<String, Any>
+                firestoreMap(data["unitPreferences"])
             )
         )
     }
