@@ -179,6 +179,52 @@ fun FitnessActivityRings(
 }
 
 @Composable
+fun MetricProgressRing(
+    progress: Double,
+    color: Color,
+    modifier: Modifier = Modifier,
+    size: Dp = 64.dp,
+    lineWidth: Dp = 6.dp
+) {
+    val clampedProgress = progress.coerceIn(0.0, 1.0)
+    val trackColor = BWSColors.SurfaceHighlight
+
+    Box(
+        modifier = modifier.size(size),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val stroke = Stroke(width = lineWidth.toPx(), cap = StrokeCap.Round)
+            val arcSize = androidx.compose.ui.geometry.Size(
+                this.size.width - lineWidth.toPx(),
+                this.size.height - lineWidth.toPx()
+            )
+            val topLeft = androidx.compose.ui.geometry.Offset(lineWidth.toPx() / 2, lineWidth.toPx() / 2)
+
+            drawArc(
+                color = trackColor,
+                startAngle = 0f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = stroke
+            )
+
+            drawArc(
+                color = color,
+                startAngle = -90f,
+                sweepAngle = (clampedProgress * 360).toFloat(),
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = stroke
+            )
+        }
+    }
+}
+
+@Composable
 fun BWSPrimaryButton(
     title: String,
     onClick: () -> Unit,

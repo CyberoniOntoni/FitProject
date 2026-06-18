@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -53,6 +54,8 @@ fun ProfileNavHost(
     navController: NavHostController = rememberNavController(),
     onDismiss: () -> Unit,
     onFormTap: (FPForm) -> Unit = {},
+    startRoute: String? = null,
+    onStartRouteConsumed: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val themeMode by themeViewModel.themeMode.collectAsStateWithLifecycle()
@@ -71,6 +74,15 @@ fun ProfileNavHost(
     val pendingFormsCount = remember(forms, user) {
         val userId = user?.id
         if (userId == null) 0 else forms.count { !it.isCompleted(userId) }
+    }
+
+    LaunchedEffect(startRoute) {
+        if (startRoute != null && startRoute != ProfileDestination.PROFILE.route) {
+            navController.navigate(startRoute) {
+                launchSingleTop = true
+            }
+            onStartRouteConsumed()
+        }
     }
 
     NavHost(

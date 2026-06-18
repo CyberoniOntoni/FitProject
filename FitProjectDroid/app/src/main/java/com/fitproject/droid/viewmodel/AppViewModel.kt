@@ -25,6 +25,8 @@ import com.fitproject.droid.data.FullSyncResult
 import com.fitproject.droid.data.SyncEngine
 import com.fitproject.droid.data.SyncStateCallbacks
 import com.fitproject.droid.data.WorkoutSessionState
+import com.fitproject.droid.data.fitness.DailyActivityMetrics
+import com.fitproject.droid.data.fitness.GoogleFitRepository
 import com.fitproject.droid.data.onboarding.GeneratedExercisePlan
 import com.fitproject.droid.data.onboarding.OnboardingPlanConverter
 import com.fitproject.droid.data.onboarding.OnboardingRepository
@@ -48,9 +50,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private val syncEngine = SyncEngine()
     private val onboardingRepository = OnboardingRepository(application)
+    private val googleFitRepository = GoogleFitRepository(application)
 
     // Navigation & tabs
-    private val _selectedTab = MutableStateFlow(AppTab.TRAIN)
+    private val _selectedTab = MutableStateFlow(AppTab.SUMMARY)
     val selectedTab: StateFlow<AppTab> = _selectedTab.asStateFlow()
 
     // App data
@@ -130,6 +133,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
     private val _showProfileSheet = MutableStateFlow(false)
     val showProfileSheet: StateFlow<Boolean> = _showProfileSheet.asStateFlow()
 
+    private val _profileStartRoute = MutableStateFlow<String?>(null)
+    val profileStartRoute: StateFlow<String?> = _profileStartRoute.asStateFlow()
+
+    // Google Fit activity
+    private val _activityMetrics = MutableStateFlow(DailyActivityMetrics())
+    val activityMetrics: StateFlow<DailyActivityMetrics> = _activityMetrics.asStateFlow()
+
+    val googleFitFitnessOptions get() = googleFitRepository.fitnessOptions
+
     // Onboarding (experimental)
     private val _needsOnboarding = MutableStateFlow(false)
     val needsOnboarding: StateFlow<Boolean> = _needsOnboarding.asStateFlow()
@@ -164,6 +176,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
 
     fun setShowProfileSheet(show: Boolean) {
         _showProfileSheet.value = show
+        if (!show) {
+            _profileStartRoute.value = null
+        }
+    }
+
+    fun openHabitsFromSummary() {
+        _profileStartRoute.value = "habits"
+        _showProfileSheet.value = true
+    }
+
+    fun clearProfileStartRoute() {
+        _profileStartRoute.value = null
+    }
+
+    fun refreshActivityMetrics() {
+        viewModelScope.launch {
+            _activityMetrics.update { it.copy(isLoading = true, errorMessage = null) }
+            val metrics = googleFitRepository.readTodayMetrics(_unitPreferences.value.distance)
+            _activityMetrics.value = metrics.copy(isLoading = false)
+        }
+    }
+
+    fun onGoogleFitPermissionsGranted() {
+        refreshActivityMetrics()
     }
 
     fun checkOnboardingStatus() {

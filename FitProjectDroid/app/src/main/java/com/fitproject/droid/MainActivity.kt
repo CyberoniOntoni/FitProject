@@ -1,9 +1,15 @@
 package com.fitproject.droid
 
+import android.Manifest
+import android.app.Activity
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +32,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -47,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -57,8 +65,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.android.gms.auth.api.signin.GoogleSignIn
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -75,6 +85,7 @@ import com.fitproject.droid.ui.screens.HistoryScreen
 import com.fitproject.droid.ui.screens.LearnScreen
 import com.fitproject.droid.ui.screens.ProgramsScreen
 import com.fitproject.droid.ui.screens.OnboardingWizardScreen
+import com.fitproject.droid.ui.screens.SummaryScreen
 import com.fitproject.droid.ui.screens.TrainScreen
 import com.fitproject.droid.ui.screens.WorkoutSessionScreen
 import com.fitproject.droid.viewmodel.OnboardingViewModel
@@ -85,6 +96,19 @@ import com.fitproject.droid.viewmodel.AppViewModel
 import com.fitproject.droid.viewmodel.ThemeViewModel
 
 class MainActivity : ComponentActivity() {
+
+    var onGoogleFitPermissionResult: ((Boolean) -> Unit)? = null
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == GOOGLE_FIT_PERMISSION_REQUEST) {
+            onGoogleFitPermissionResult?.invoke(resultCode == Activity.RESULT_OK)
+            onGoogleFitPermissionResult = null
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -289,8 +313,11 @@ fun MainShell(
 ) {
     val selectedTab by appViewModel.selectedTab.collectAsStateWithLifecycle()
     val showProfileSheet by appViewModel.showProfileSheet.collectAsStateWithLifecycle()
+    val profileStartRoute by appViewModel.profileStartRoute.collectAsStateWithLifecycle()
 
     val isSyncing by appViewModel.isSyncing.collectAsStateWithLifecycle()
+    val activityMetrics by appViewModel.activityMetrics.collectAsStateWithLifecycle()
+    val unitPreferences by appViewModel.unitPreferences.collectAsStateWithLifecycle()
     val weeklyCompleted by appViewModel.weeklyWorkoutsCompleted.collectAsStateWithLifecycle()
     val weeklyGoal by appViewModel.weeklyWorkoutGoal.collectAsStateWithLifecycle()
     val nextWorkout by appViewModel.nextWorkout.collectAsStateWithLifecycle()
@@ -308,6 +335,37 @@ fun MainShell(
     var selectedForm by remember { mutableStateOf<FPForm?>(null) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val context = LocalContext.current
+
+    val activityRecognitionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            val activity = context as? MainActivity ?: return@rememberLauncherForActivityResult
+            requestGoogleFitPermissions(activity, appViewModel)
+        }
+    }
+
+    fun connectGoogleFit() {
+        val activity = context as? MainActivity ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val granted = ContextCompat.checkSelfPermission(
+                activity,
+                Manifest.permission.ACTIVITY_RECOGNITION
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                activityRecognitionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+                return
+            }
+        }
+        requestGoogleFitPermissions(activity, appViewModel)
+    }
+
+    LaunchedEffect(selectedTab) {
+        if (selectedTab == AppTab.SUMMARY) {
+            appViewModel.refreshActivityMetrics()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -321,6 +379,13 @@ fun MainShell(
                             .background(BWSColors.SurfaceElevated)
                             .padding(top = 8.dp, bottom = 28.dp)
                     ) {
+                        TabBarItem(
+                            icon = Icons.Default.Insights,
+                            label = AppTab.SUMMARY.label,
+                            selected = selectedTab == AppTab.SUMMARY,
+                            onClick = { appViewModel.setSelectedTab(AppTab.SUMMARY) },
+                            modifier = Modifier.weight(1f)
+                        )
                         TabBarItem(
                             icon = Icons.Default.FitnessCenter,
                             label = AppTab.TRAIN.label,
@@ -367,17 +432,24 @@ fun MainShell(
                     .background(BWSColors.Background)
             ) {
                 when (selectedTab) {
+                    AppTab.SUMMARY -> SummaryScreen(
+                        activityMetrics = activityMetrics,
+                        distanceUnit = unitPreferences.distance,
+                        habits = habits,
+                        userFirstName = currentUser?.firstName ?: "",
+                        onRefreshActivity = appViewModel::refreshActivityMetrics,
+                        onConnectGoogleFit = { connectGoogleFit() },
+                        onUpdateHabit = appViewModel::updateHabit,
+                        onSeeAllHabits = appViewModel::openHabitsFromSummary
+                    )
                     AppTab.TRAIN -> TrainScreen(
                         isSyncing = isSyncing,
                         weeklyCompleted = weeklyCompleted,
                         weeklyGoal = weeklyGoal,
                         nextWorkout = nextWorkout,
                         nextProgram = nextProgram,
-                        habits = habits,
                         userFirstName = currentUser?.firstName ?: "",
-                        onStartWorkout = { workout, program -> appViewModel.startWorkout(workout, program) },
-                        onUpdateHabit = appViewModel::updateHabit,
-                        onSeeAllHabits = { appViewModel.setShowProfileSheet(true) }
+                        onStartWorkout = { workout, program -> appViewModel.startWorkout(workout, program) }
                     )
                     AppTab.PROGRAMS -> ProgramsScreen(
                         programs = programs,
@@ -464,11 +536,36 @@ fun MainShell(
                         onFormTap = { form ->
                             appViewModel.setShowProfileSheet(false)
                             selectedForm = form
-                        }
+                        },
+                        startRoute = profileStartRoute,
+                        onStartRouteConsumed = appViewModel::clearProfileStartRoute
                     )
                 }
             }
         }
+    }
+}
+
+private const val GOOGLE_FIT_PERMISSION_REQUEST = 9001
+
+private fun requestGoogleFitPermissions(
+    activity: MainActivity,
+    appViewModel: AppViewModel
+) {
+    val options = appViewModel.googleFitFitnessOptions
+    val account = GoogleSignIn.getAccountForExtension(activity, options)
+    if (!GoogleSignIn.hasPermissions(account, options)) {
+        activity.onGoogleFitPermissionResult = { granted ->
+            if (granted) appViewModel.onGoogleFitPermissionsGranted()
+        }
+        GoogleSignIn.requestPermissions(
+            activity,
+            GOOGLE_FIT_PERMISSION_REQUEST,
+            account,
+            options
+        )
+    } else {
+        appViewModel.refreshActivityMetrics()
     }
 }
 

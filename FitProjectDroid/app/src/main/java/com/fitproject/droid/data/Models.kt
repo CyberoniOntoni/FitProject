@@ -547,6 +547,7 @@ data class FPAssignedProgram(
 // MARK: - Tab
 
 enum class AppTab(val label: String, val icon: String) {
+    SUMMARY("Summary", "insights"),
     TRAIN("Train", "fitness_center"),
     PROGRAMS("Programs", "view_list"),
     LEARN("Learn", "menu_book"),

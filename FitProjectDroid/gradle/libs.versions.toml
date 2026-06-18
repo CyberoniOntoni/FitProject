@@ -13,6 +13,8 @@ lifecycle = "2.11.0"
 navigationCompose = "2.9.8"
 datastore = "1.2.0"
 serialization = "1.8.1"
+play-services-fitness = "21.2.0"
+play-services-auth = "21.3.0"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity-compose" }
@@ -40,6 +42,8 @@ firebase-storage-ktx = { group = "com.google.firebase", name = "firebase-storage
 
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
+play-services-fitness = { group = "com.google.android.gms", name = "play-services-fitness", version.ref = "play-services-fitness" }
+play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "play-services-auth" }
 
 [plugins]
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version = "2.4.0" }
