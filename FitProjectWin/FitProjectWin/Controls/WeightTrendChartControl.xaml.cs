@@ -17,6 +17,9 @@ public sealed partial class WeightTrendChartControl : UserControl
     private readonly List<WeightTrendEntry> _entries = [];
     private int _selectedIndex;
     private string _unitLabel = "kg";
+    private bool _isLoaded;
+    private IReadOnlyList<FPMeasurement>? _pendingMeasurements;
+    private FPUnitPreferences? _pendingPrefs;
 
     private const float LeftPad = 36f;
     private const float RightPad = 12f;
@@ -26,11 +29,40 @@ public sealed partial class WeightTrendChartControl : UserControl
     public WeightTrendChartControl()
     {
         InitializeComponent();
-        Loaded += (_, _) => RedrawChart();
+        Loaded += OnLoaded;
         SizeChanged += (_, _) => RedrawChart();
     }
 
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        _isLoaded = true;
+        _pendingMeasurements = null;
+        _pendingPrefs = null;
+
+        if (_entries.Count >= 2)
+        {
+            UpdateSummary();
+            RedrawChart();
+        }
+    }
+
     public void UpdateMeasurements(IReadOnlyList<FPMeasurement> measurements, FPUnitPreferences prefs)
+    {
+        if (!TryPrepareEntries(measurements, prefs))
+            return;
+
+        if (!_isLoaded)
+        {
+            _pendingMeasurements = measurements;
+            _pendingPrefs = prefs;
+            return;
+        }
+
+        UpdateSummary();
+        RedrawChart();
+    }
+
+    private bool TryPrepareEntries(IReadOnlyList<FPMeasurement> measurements, FPUnitPreferences prefs)
     {
         var bodyweightType = MeasurementCatalog.FindById("DfqsrFQBGi04aHWAPA7I");
         _entries.Clear();
@@ -38,7 +70,7 @@ public sealed partial class WeightTrendChartControl : UserControl
         if (bodyweightType is null)
         {
             Visibility = Visibility.Collapsed;
-            return;
+            return false;
         }
 
         var weightLogs = measurements
@@ -54,7 +86,7 @@ public sealed partial class WeightTrendChartControl : UserControl
         if (weightLogs.Count < 2)
         {
             Visibility = Visibility.Collapsed;
-            return;
+            return false;
         }
 
         Visibility = Visibility.Visible;
@@ -73,8 +105,7 @@ public sealed partial class WeightTrendChartControl : UserControl
             FormattedValue = FormatDisplayValue(m.Value, bodyweightType, prefs)
         }));
         _selectedIndex = _entries.Count - 1;
-        UpdateSummary();
-        RedrawChart();
+        return true;
     }
 
     private static string FormatDisplayValue(double canonical, MeasurementTypeDef type, FPUnitPreferences prefs)
@@ -132,11 +163,11 @@ public sealed partial class WeightTrendChartControl : UserControl
                 ? $"{sign}{delta:0} {_unitLabel}"
                 : $"{sign}{delta:0.0} {_unitLabel}";
             SelectedDeltaText.Text = deltaText;
-            SelectedDeltaText.Foreground = new SolidColorBrush(delta switch
+            SelectedDeltaText.Foreground = ResourceBrush(delta switch
             {
-                > 0 => (Color)Application.Current.Resources["WarningColor"],
-                < 0 => (Color)Application.Current.Resources["SuccessColor"],
-                _ => (Color)Application.Current.Resources["TextTertiaryColor"]
+                > 0 => "WarningBrush",
+                < 0 => "SuccessBrush",
+                _ => "TextTertiaryBrush"
             });
             SelectedDeltaText.Visibility = Visibility.Visible;
         }
@@ -335,7 +366,7 @@ public sealed partial class WeightTrendChartControl : UserControl
             {
                 Text = label,
                 FontSize = 10,
-                Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"]!
+                Foreground = ResourceBrush("TextSecondaryBrush")
             };
             ChartCanvas.Children.Add(text);
             Canvas.SetLeft(text, 4);
@@ -350,12 +381,14 @@ public sealed partial class WeightTrendChartControl : UserControl
             {
                 Text = label,
                 FontSize = 10,
-                Foreground = (Brush)Application.Current.Resources["TextTertiaryBrush"]!
+                Foreground = ResourceBrush("TextTertiaryBrush")
             };
-            text.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             ChartCanvas.Children.Add(text);
-            Canvas.SetLeft(text, point.X - text.DesiredSize.Width / 2);
-            Canvas.SetTop(text, height - text.DesiredSize.Height - 2);
+            text.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var labelWidth = text.DesiredSize.Width > 0 ? text.DesiredSize.Width : label.Length * 5.5;
+            var labelHeight = text.DesiredSize.Height > 0 ? text.DesiredSize.Height : 14;
+            Canvas.SetLeft(text, point.X - labelWidth / 2);
+            Canvas.SetTop(text, height - labelHeight - 2);
         }
     }
 
@@ -404,6 +437,9 @@ public sealed partial class WeightTrendChartControl : UserControl
             });
         }
     }
+
+    private static Brush ResourceBrush(string key) =>
+        (Brush)Application.Current.Resources[key]!;
 
     private sealed class WeightTrendEntry
     {
