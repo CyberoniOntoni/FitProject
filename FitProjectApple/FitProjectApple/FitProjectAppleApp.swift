@@ -2,7 +2,7 @@ import SwiftUI
 import FirebaseCore
 
 @main
-struct FitProjectApp: App {
+struct FitProjectAppleApp: App {
     @StateObject private var appState = AppState()
 
     init() {

@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A10000010000000000000001 /* FitProjectApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000001 /* FitProjectApp.swift */; };
+		A10000010000000000000001 /* FitProjectAppleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000001 /* FitProjectAppleApp.swift */; };
 		A10000010000000000000002 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000002 /* RootView.swift */; };
 		A10000010000000000000003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000003 /* ContentView.swift */; };
 		A10000010000000000000004 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000004 /* Models.swift */; };
@@ -42,7 +42,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A20000010000000000000001 /* FitProjectApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitProjectApp.swift; sourceTree = "<group>"; };
+		A20000010000000000000001 /* FitProjectAppleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitProjectAppleApp.swift; sourceTree = "<group>"; };
 		A20000010000000000000002 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		A20000010000000000000003 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A20000010000000000000004 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -72,7 +72,7 @@
 		A20000010000000000000028 /* FirebaseStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseStorageService.swift; sourceTree = "<group>"; };
 		A20000010000000000000029 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A20000010000000000000030 /* AddProgressPhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddProgressPhotoView.swift; sourceTree = "<group>"; };
-		A30000010000000000000001 /* FitProject.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FitProject.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A30000010000000000000001 /* FitProjectApple.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FitProjectApple.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -92,15 +92,15 @@
 		A60000010000000000000001 = {
 			isa = PBXGroup;
 			children = (
-				A60000010000000000000002 /* FitProject */,
+				A60000010000000000000002 /* FitProjectApple */,
 				A60000010000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		A60000010000000000000002 /* FitProject */ = {
+		A60000010000000000000002 /* FitProjectApple */ = {
 			isa = PBXGroup;
 			children = (
-				A20000010000000000000001 /* FitProjectApp.swift */,
+				A20000010000000000000001 /* FitProjectAppleApp.swift */,
 				A20000010000000000000002 /* RootView.swift */,
 				A20000010000000000000003 /* ContentView.swift */,
 				A60000010000000000000004 /* Core */,
@@ -110,13 +110,13 @@
 				A60000010000000000000008 /* Resources */,
 				A20000010000000000000021 /* Info.plist */,
 			);
-			path = FitProject;
+			path = FitProjectApple;
 			sourceTree = "<group>";
 		};
 		A60000010000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A30000010000000000000001 /* FitProject.app */,
+				A30000010000000000000001 /* FitProjectApple.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -305,9 +305,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A70000010000000000000001 /* FitProject */ = {
+		A70000010000000000000001 /* FitProjectApple */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A90000010000000000000003 /* Build configuration list for PBXNativeTarget "FitProject" */;
+			buildConfigurationList = A90000010000000000000003 /* Build configuration list for PBXNativeTarget "FitProjectApple" */;
 			buildPhases = (
 				A70000010000000000000002 /* Sources */,
 				A40000010000000000000001 /* Frameworks */,
@@ -317,14 +317,14 @@
 			);
 			dependencies = (
 			);
-			name = FitProject;
+			name = FitProjectApple;
 			packageProductDependencies = (
 				A50000010000000000000001 /* FirebaseAuth */,
 				A50000010000000000000002 /* FirebaseFirestore */,
 				A50000010000000000000003 /* FirebaseStorage */,
 			);
-			productName = FitProject;
-			productReference = A30000010000000000000001 /* FitProject.app */;
+			productName = FitProjectApple;
+			productReference = A30000010000000000000001 /* FitProjectApple.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -342,7 +342,7 @@
 					};
 				};
 			};
-			buildConfigurationList = A90000010000000000000001 /* Build configuration list for PBXProject "FitProject" */;
+			buildConfigurationList = A90000010000000000000001 /* Build configuration list for PBXProject "FitProjectApple" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -358,7 +358,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A70000010000000000000001 /* FitProject */,
+				A70000010000000000000001 /* FitProjectApple */,
 			);
 		};
 /* End PBXProject section */
@@ -380,7 +380,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10000010000000000000001 /* FitProjectApp.swift in Sources */,
+				A10000010000000000000001 /* FitProjectAppleApp.swift in Sources */,
 				A10000010000000000000002 /* RootView.swift in Sources */,
 				A10000010000000000000003 /* ContentView.swift in Sources */,
 				A10000010000000000000004 /* Models.swift in Sources */,
@@ -468,7 +468,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = FitProject/Info.plist;
+				INFOPLIST_FILE = FitProjectApple/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Fit Project";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -496,7 +496,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = FitProject/Info.plist;
+				INFOPLIST_FILE = FitProjectApple/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Fit Project";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -517,7 +517,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A90000010000000000000001 /* Build configuration list for PBXProject "FitProject" */ = {
+		A90000010000000000000001 /* Build configuration list for PBXProject "FitProjectApple" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A90000010000000000000002 /* Debug */,
@@ -526,7 +526,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A90000010000000000000003 /* Build configuration list for PBXNativeTarget "FitProject" */ = {
+		A90000010000000000000003 /* Build configuration list for PBXNativeTarget "FitProjectApple" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A90000010000000000000005 /* Debug */,
