@@ -25,6 +25,9 @@ import com.fitproject.droid.data.FullSyncResult
 import com.fitproject.droid.data.SyncEngine
 import com.fitproject.droid.data.SyncStateCallbacks
 import com.fitproject.droid.data.WorkoutSessionState
+import com.fitproject.droid.data.onboarding.GeneratedExercisePlan
+import com.fitproject.droid.data.onboarding.OnboardingPlanConverter
+import com.fitproject.droid.data.onboarding.OnboardingRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
@@ -32,6 +35,7 @@ import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -43,6 +47,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
 
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private val syncEngine = SyncEngine()
+    private val onboardingRepository = OnboardingRepository(application)
 
     // Navigation & tabs
     private val _selectedTab = MutableStateFlow(AppTab.TRAIN)
@@ -125,6 +130,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
     private val _showProfileSheet = MutableStateFlow(false)
     val showProfileSheet: StateFlow<Boolean> = _showProfileSheet.asStateFlow()
 
+    // Onboarding (experimental)
+    private val _needsOnboarding = MutableStateFlow(false)
+    val needsOnboarding: StateFlow<Boolean> = _needsOnboarding.asStateFlow()
+
+    private val _onboardingPlan = MutableStateFlow<GeneratedExercisePlan?>(null)
+    val onboardingPlan: StateFlow<GeneratedExercisePlan?> = _onboardingPlan.asStateFlow()
+
     init {
         auth.addAuthStateListener { firebaseAuth ->
             val firebaseUser = firebaseAuth.currentUser
@@ -137,6 +149,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
                         firstName = firebaseUser.displayName?.split(" ")?.firstOrNull() ?: "",
                         lastName = firebaseUser.displayName?.split(" ")?.drop(1)?.joinToString(" ") ?: ""
                     )
+                    checkOnboardingStatus()
+                    loadData()
                 }
             } else {
                 _currentUser.value = null
@@ -151,6 +165,51 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
     fun setShowProfileSheet(show: Boolean) {
         _showProfileSheet.value = show
     }
+
+    fun checkOnboardingStatus() {
+        viewModelScope.launch {
+            _needsOnboarding.value = !onboardingRepository.isComplete.first()
+            _onboardingPlan.value = onboardingRepository.loadGeneratedPlan()
+            applyOnboardingPlanIfNeeded()
+        }
+    }
+
+    fun completeOnboarding(firstName: String?) {
+        viewModelScope.launch {
+            _needsOnboarding.value = false
+            _onboardingPlan.value = onboardingRepository.loadGeneratedPlan()
+            firstName?.takeIf { it.isNotBlank() }?.let { name ->
+                _currentUser.update { user ->
+                    user?.copy(firstName = name) ?: user
+                }
+            }
+            applyOnboardingPlanIfNeeded()
+            selectNextWorkout()
+        }
+    }
+
+    fun resetOnboarding() {
+        viewModelScope.launch {
+            onboardingRepository.reset()
+            _needsOnboarding.value = true
+            _onboardingPlan.value = null
+        }
+    }
+
+    private fun applyOnboardingPlanIfNeeded() {
+        val plan = _onboardingPlan.value ?: return
+        if (_programs.value.any { it.id != OnboardingPlanConverter.PROGRAM_ID }) return
+
+        val program = OnboardingPlanConverter.toProgram(plan)
+        val week = OnboardingPlanConverter.toProgramWeek(plan)
+        if (_programs.value.none { it.id == OnboardingPlanConverter.PROGRAM_ID }) {
+            _programs.value = listOf(program)
+        }
+        _programWeeks.value = _programWeeks.value + (program.id to listOf(week))
+    }
+
+    fun harvestedWorkouts(): List<FPWorkout> =
+        _programWeeks.value.values.flatten().flatMap { it.workouts }
 
     fun loadData() {
         val userId = _currentUser.value?.id ?: return
@@ -175,6 +234,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
                 val profile = com.fitproject.droid.data.FirestoreService.shared.fetchUserProfile(userId)
                 _currentUser.value = profile
                 _isAuthenticated.value = true
+                checkOnboardingStatus()
                 loadData()
             } catch (e: Exception) {
                 _authError.value = mapAuthError(e)
@@ -468,6 +528,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
         _unitPreferences.value = result.unitPreferences
         _currentUser.value = result.userProfile
         updateWeeklyProgress()
+        applyOnboardingPlanIfNeeded()
         selectNextWorkout()
     }
 

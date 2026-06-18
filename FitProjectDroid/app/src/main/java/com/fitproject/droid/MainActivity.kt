@@ -72,8 +72,10 @@ import com.fitproject.droid.ui.screens.ContentDetailScreen
 import com.fitproject.droid.ui.screens.HistoryScreen
 import com.fitproject.droid.ui.screens.LearnScreen
 import com.fitproject.droid.ui.screens.ProgramsScreen
+import com.fitproject.droid.ui.screens.OnboardingWizardScreen
 import com.fitproject.droid.ui.screens.TrainScreen
 import com.fitproject.droid.ui.screens.WorkoutSessionScreen
+import com.fitproject.droid.viewmodel.OnboardingViewModel
 import com.fitproject.droid.ui.theme.BWSColors
 import com.fitproject.droid.ui.theme.BWSTypography
 import com.fitproject.droid.ui.theme.FitProjectTheme
@@ -92,8 +94,14 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun FitProjectRoot(appViewModel: AppViewModel = viewModel()) {
+fun FitProjectRoot(
+    appViewModel: AppViewModel = viewModel(),
+    onboardingViewModel: OnboardingViewModel = viewModel()
+) {
     val isAuthenticated by appViewModel.isAuthenticated.collectAsStateWithLifecycle()
+    val needsOnboarding by appViewModel.needsOnboarding.collectAsStateWithLifecycle()
+    val forms by appViewModel.forms.collectAsStateWithLifecycle()
+    val currentUser by appViewModel.currentUser.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val activeSession by appViewModel.activeWorkoutSession.collectAsStateWithLifecycle()
     var workoutDismissed by remember { mutableStateOf(false) }
@@ -105,14 +113,22 @@ fun FitProjectRoot(appViewModel: AppViewModel = viewModel()) {
         }
     }
 
-    LaunchedEffect(isAuthenticated) {
-        if (isAuthenticated) {
-            navController.navigate("main") {
-                popUpTo("login") { inclusive = true }
+    LaunchedEffect(isAuthenticated, needsOnboarding) {
+        when {
+            !isAuthenticated -> {
+                navController.navigate("login") {
+                    popUpTo(0) { inclusive = true }
+                }
             }
-        } else {
-            navController.navigate("login") {
-                popUpTo(0) { inclusive = true }
+            needsOnboarding -> {
+                navController.navigate("onboarding") {
+                    popUpTo("login") { inclusive = true }
+                }
+            }
+            else -> {
+                navController.navigate("main") {
+                    popUpTo("login") { inclusive = true }
+                }
             }
         }
     }
@@ -134,6 +150,19 @@ fun FitProjectRoot(appViewModel: AppViewModel = viewModel()) {
     ) {
         composable("login") {
             LoginScreen(appViewModel = appViewModel)
+        }
+        composable("onboarding") {
+            val profile by onboardingViewModel.profile.collectAsStateWithLifecycle()
+            OnboardingWizardScreen(
+                viewModel = onboardingViewModel,
+                userId = currentUser?.id,
+                forms = forms,
+                harvestedWorkouts = appViewModel.harvestedWorkouts(),
+                onComplete = {
+                    appViewModel.completeOnboarding(profile.firstName)
+                },
+                onSubmitForm = { form, answers -> appViewModel.submitForm(form, answers) }
+            )
         }
         composable("main") {
             MainShell(appViewModel = appViewModel)

@@ -47,6 +47,42 @@ class FirestoreService private constructor() {
             .await()
     }
 
+    suspend fun saveOnboardingProfile(
+        userId: String,
+        profile: com.fitproject.droid.data.onboarding.OnboardingProfile
+    ) {
+        val data = mutableMapOf<String, Any>(
+            "onboardingProfile" to mapOf(
+                "firstName" to profile.firstName,
+                "goal" to (profile.goal?.name ?: ""),
+                "gender" to (profile.gender?.name ?: ""),
+                "dateOfBirth" to (profile.dateOfBirth?.time ?: 0L),
+                "heightCm" to (profile.heightCm ?: 0.0),
+                "weightKg" to (profile.weightKg ?: 0.0),
+                "bodyFatPercent" to (profile.bodyFatPercent ?: 0.0),
+                "bodyFatMethod" to (profile.bodyFatMethod?.name ?: ""),
+                "muscleGoalKg" to profile.muscleGoalKg,
+                "experience" to (profile.experience?.name ?: ""),
+                "availableDays" to profile.availableDays.map { it.name },
+                "daysPerWeek" to profile.daysPerWeek,
+                "sessionMinutes" to profile.sessionMinutes,
+                "musclePriority" to profile.musclePriority.name,
+                "bodyFocus" to profile.bodyFocus.name,
+                "workoutSplit" to profile.workoutSplit.name,
+                "gymType" to profile.gymType.name,
+                "equipment" to profile.equipment.map { it.name },
+                "completedAt" to System.currentTimeMillis(),
+                "skipped" to profile.skipped
+            )
+        )
+        if (profile.firstName.isNotBlank()) {
+            data["firstName"] = profile.firstName
+        }
+        db.collection("users").document(userId)
+            .set(data, com.google.firebase.firestore.SetOptions.merge())
+            .await()
+    }
+
     // MARK: - Programs
 
     suspend fun fetchAssignedPrograms(userId: String): List<FPAssignedProgram> {
