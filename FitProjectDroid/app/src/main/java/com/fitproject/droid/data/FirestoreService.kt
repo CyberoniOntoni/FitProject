@@ -576,7 +576,9 @@ class FirestoreService private constructor() {
     @Suppress("UNCHECKED_CAST")
     private fun parseWorkoutLog(doc: DocumentSnapshot): FPWorkoutLog? {
         val data = doc.data ?: return null
-        val startedAt = (data["startedAt"] as? Timestamp)?.toDate() ?: return null
+        val startedAt = (data["startedAt"] as? Timestamp)?.toDate()
+            ?: (data["startDate"] as? Timestamp)?.toDate()
+            ?: return null
         val exercises = (data["exercises"] as? List<Map<String, Any>> ?: emptyList()).map { e ->
             val sets = (e["sets"] as? List<Map<String, Any>> ?: emptyList()).map { s ->
                 FPLoggedSet(
