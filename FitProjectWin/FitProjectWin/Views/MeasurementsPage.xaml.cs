@@ -1,3 +1,4 @@
+using FitProjectWin.Controls;
 using FitProjectWin.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -8,6 +9,8 @@ namespace FitProjectWin.Views;
 public sealed partial class MeasurementsPage : Page
 {
     public MainViewModel ViewModel { get; } = App.ViewModel;
+    private WeightTrendChartRenderer? _trendRenderer;
+    private bool _isPageLoaded;
 
     public MeasurementsPage()
     {
@@ -15,8 +18,17 @@ public sealed partial class MeasurementsPage : Page
         foreach (var type in MeasurementCatalog.Types)
             TypeCombo.Items.Add(type.Name);
         TypeCombo.SelectedIndex = 0;
+        Loaded += OnPageLoaded;
         ViewModel.Data.DataChanged += Refresh;
         Refresh();
+    }
+
+    private void OnPageLoaded(object sender, RoutedEventArgs e)
+    {
+        _isPageLoaded = true;
+        _trendRenderer ??= new WeightTrendChartRenderer(
+            TrendCanvas, TrendValueText, TrendUnitText, TrendDateText, TrendDeltaText);
+        BuildWeightTrend(ViewModel.Data.Measurements);
     }
 
     private void TypeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -288,8 +300,21 @@ public sealed partial class MeasurementsPage : Page
 
     private void BuildWeightTrend(List<FPMeasurement> measurements)
     {
-        WeightTrendChart.UpdateMeasurements(measurements, ViewModel.Data.UnitPreferences);
-        TrendCard.Visibility = WeightTrendChart.Visibility;
+        if (!_isPageLoaded || _trendRenderer is null)
+        {
+            TrendCard.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        try
+        {
+            var hasTrend = _trendRenderer.Update(measurements, ViewModel.Data.UnitPreferences);
+            TrendCard.Visibility = hasTrend ? Visibility.Visible : Visibility.Collapsed;
+        }
+        catch
+        {
+            TrendCard.Visibility = Visibility.Collapsed;
+        }
     }
 
     private void Back_Click(object sender, RoutedEventArgs e) =>

@@ -13,6 +13,16 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
+        UnhandledException += (_, e) =>
+        {
+            try
+            {
+                File.WriteAllText(
+                    Path.Combine(AppContext.BaseDirectory, "crash.log"),
+                    $"{DateTime.Now:u}{Environment.NewLine}{e.Exception}");
+            }
+            catch { /* best effort */ }
+        };
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
