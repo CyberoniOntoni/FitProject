@@ -9,9 +9,11 @@ object WorkoutMetricFormat {
     fun isHighlighted(name: String): Boolean = name in highlightedMetrics
 
     fun fieldWidth(name: String): Dp = when (name) {
-        "Reps", "Rest", "RPE", "Tempo" -> 68.dp
-        else -> 58.dp
+        "Reps", "Rest", "RPE", "Tempo" -> 56.dp
+        else -> 48.dp
     }
+
+    fun fieldHeight(): Dp = 36.dp
 
     fun formatTempoDisplay(value: String?): String {
         if (value.isNullOrBlank()) return ""

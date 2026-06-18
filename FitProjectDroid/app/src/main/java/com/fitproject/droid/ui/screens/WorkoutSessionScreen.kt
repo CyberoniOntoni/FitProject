@@ -8,6 +8,8 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -494,37 +496,54 @@ private fun MetricInputField(
         else -> KeyboardType.Decimal
     }
 
-    OutlinedTextField(
+    val fieldHeight = WorkoutMetricFormat.fieldHeight()
+    val backgroundAlpha = if (highlighted) 0.14f else 0.08f
+    val borderAlpha = if (highlighted) 0.4f else 0.22f
+
+    BasicTextField(
         value = displayValue,
         onValueChange = { newValue ->
             onValueChange(WorkoutMetricFormat.sanitizeMetricInput(metricName, newValue))
         },
-        modifier = Modifier
-            .width(WorkoutMetricFormat.fieldWidth(metricName))
-            .height(if (highlighted) 44.dp else 40.dp),
         singleLine = true,
-        placeholder = {
-            if (metricName == "Tempo") {
-                Text("301", fontSize = 14.sp, color = BWSColors.TextTertiary, textAlign = TextAlign.Center)
-            }
-        },
         textStyle = androidx.compose.ui.text.TextStyle(
-            fontSize = if (highlighted) 16.sp else 15.sp,
+            fontSize = if (highlighted) 15.sp else 14.sp,
             fontWeight = if (highlighted) FontWeight.Bold else FontWeight.SemiBold,
             textAlign = TextAlign.Center,
-            color = color
+            color = color,
+            lineHeight = if (highlighted) 18.sp else 17.sp
         ),
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = color,
-            unfocusedTextColor = color,
-            focusedContainerColor = color.copy(alpha = if (highlighted) 0.18f else 0.1f),
-            unfocusedContainerColor = color.copy(alpha = if (highlighted) 0.12f else 0.08f),
-            focusedBorderColor = color.copy(alpha = 0.55f),
-            unfocusedBorderColor = color.copy(alpha = if (highlighted) 0.35f else 0.2f),
-            cursorColor = color
-        ),
-        shape = RoundedCornerShape(8.dp)
+        cursorBrush = androidx.compose.ui.graphics.SolidColor(color),
+        modifier = Modifier
+            .width(WorkoutMetricFormat.fieldWidth(metricName))
+            .height(fieldHeight)
+            .clip(RoundedCornerShape(8.dp))
+            .background(color.copy(alpha = backgroundAlpha))
+            .border(1.dp, color.copy(alpha = borderAlpha), RoundedCornerShape(8.dp)),
+        decorationBox = { innerTextField ->
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                if (displayValue.isEmpty() && metricName == "Tempo") {
+                    Text(
+                        "301",
+                        fontSize = 14.sp,
+                        color = BWSColors.TextTertiary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    innerTextField()
+                }
+            }
+        }
     )
 }
 

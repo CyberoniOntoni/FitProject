@@ -176,7 +176,7 @@ public sealed partial class WorkoutSessionPage : Page
         var header = new Grid { Margin = new Thickness(0, 0, 0, 4) };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(32) });
         foreach (var metric in _vm.CurrentMetrics)
-            header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(WorkoutMetricFormat.IsHighlighted(metric.Name) ? 72 : 60) });
+            header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(WorkoutMetricFormat.FieldWidth(metric.Name)) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
 
         header.Children.Add(new TextBlock
@@ -250,7 +250,7 @@ public sealed partial class WorkoutSessionPage : Page
         var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(32) });
         foreach (var metric in _vm!.CurrentMetrics)
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(WorkoutMetricFormat.IsHighlighted(metric.Name) ? 72 : 60) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(WorkoutMetricFormat.FieldWidth(metric.Name)) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
 
         var setNum = new TextBlock
@@ -281,16 +281,23 @@ public sealed partial class WorkoutSessionPage : Page
                 Text = displayValue,
                 PlaceholderText = metricName == "Tempo" ? "301" : "",
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Height = highlighted ? 44 : 40,
-                FontSize = highlighted ? 16 : 15,
+                VerticalAlignment = VerticalAlignment.Center,
+                Height = WorkoutMetricFormat.FieldHeight(metricName),
+                MinHeight = WorkoutMetricFormat.FieldHeight(metricName),
+                MaxHeight = WorkoutMetricFormat.FieldHeight(metricName),
+                FontSize = highlighted ? 14 : 13,
                 FontWeight = highlighted ? Microsoft.UI.Text.FontWeights.Bold : Microsoft.UI.Text.FontWeights.SemiBold,
                 TextAlignment = TextAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Padding = new Thickness(4, 0, 4, 0),
                 Background = new SolidColorBrush(Color.FromArgb(highlighted ? (byte)46 : (byte)20, color.R, color.G, color.B)),
                 Foreground = new SolidColorBrush(color),
                 BorderBrush = new SolidColorBrush(Color.FromArgb(highlighted ? (byte)90 : (byte)56, color.R, color.G, color.B)),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8)
             };
+            ScrollViewer.SetVerticalScrollMode(box, ScrollMode.Disabled);
+            ScrollViewer.SetVerticalScrollBarVisibility(box, ScrollBarVisibility.Disabled);
             var capturedMetric = metricName;
             box.TextChanged += (_, _) =>
             {

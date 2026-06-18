@@ -6,6 +6,10 @@ internal static class WorkoutMetricFormat
 
     public static bool IsHighlighted(string name) => HighlightedMetrics.Contains(name);
 
+    public static double FieldWidth(string name) => IsHighlighted(name) ? 52 : 44;
+
+    public static double FieldHeight(string name) => IsHighlighted(name) ? 32 : 30;
+
     public static string FormatTempoDisplay(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return "";
