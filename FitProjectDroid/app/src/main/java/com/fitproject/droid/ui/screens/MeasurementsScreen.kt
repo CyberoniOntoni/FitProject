@@ -45,10 +45,11 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -376,7 +377,9 @@ private fun WeightTrendChart(
             }
 
             val chartHeight = 168.dp
-            val density = LocalDensity.current
+            val textMeasurer = rememberTextMeasurer()
+            val yAxisLabelStyle = TextStyle(fontSize = 10.sp, color = BWSColors.TextSecondary)
+            val xAxisLabelStyle = TextStyle(fontSize = 10.sp, color = BWSColors.TextTertiary)
 
             Canvas(
                 modifier = Modifier
@@ -552,29 +555,26 @@ private fun WeightTrendChart(
                     )
                 }
 
-                val yLabelPaint = androidx.compose.ui.graphics.Paint().asFrameworkPaint().apply {
-                    textSize = with(density) { 10.sp.toPx() }
-                    color = android.graphics.Color.argb(140, 160, 160, 168)
-                }
                 listOf(maxDisplay, minDisplay + displayRange / 2, minDisplay).forEachIndexed { i, value ->
-                    val y = topPad + chartHeightInner * i / 2f + 4f
+                    val y = topPad + chartHeightInner * i / 2f
                     val label = if (value % 1.0 == 0.0) "%.0f".format(value) else "%.1f".format(value)
-                    drawContext.canvas.nativeCanvas.drawText(label, 4f, y, yLabelPaint)
+                    val layout = textMeasurer.measure(label, yAxisLabelStyle)
+                    drawText(
+                        textLayoutResult = layout,
+                        topLeft = Offset(4f, y - layout.size.height / 2f)
+                    )
                 }
 
-                val xLabelPaint = androidx.compose.ui.graphics.Paint().asFrameworkPaint().apply {
-                    textSize = with(density) { 10.sp.toPx() }
-                    color = android.graphics.Color.argb(120, 107, 107, 115)
-                }
                 listOf(0, weightLogs.lastIndex / 2, weightLogs.lastIndex).distinct().forEach { index ->
                     val point = points[index]
                     val label = formatMonthDay(weightLogs[index].date)
-                    val textWidth = xLabelPaint.measureText(label)
-                    drawContext.canvas.nativeCanvas.drawText(
-                        label,
-                        point.x - textWidth / 2f,
-                        size.height - 6f,
-                        xLabelPaint
+                    val layout = textMeasurer.measure(label, xAxisLabelStyle)
+                    drawText(
+                        textLayoutResult = layout,
+                        topLeft = Offset(
+                            x = point.x - layout.size.width / 2f,
+                            y = size.height - layout.size.height - 2f
+                        )
                     )
                 }
             }
