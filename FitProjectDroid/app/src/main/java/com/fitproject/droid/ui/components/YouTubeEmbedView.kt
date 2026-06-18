@@ -1,6 +1,8 @@
 package com.fitproject.droid.ui.components
 
 import android.annotation.SuppressLint
+import android.net.Uri
+import android.webkit.WebChromeClient
 import android.webkit.WebView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,9 +32,24 @@ import coil.compose.AsyncImage
 import com.fitproject.droid.data.FPWorkoutExercise
 import com.fitproject.droid.ui.theme.BWSColors
 
+private const val YOUTUBE_REFERER = "https://com.fitproject.droid"
+
+object YouTubeIds {
+    private val urlPattern = Regex(
+        """(?:youtube\.com/(?:watch\?v=|embed/|shorts/)|youtu\.be/|youtube-nocookie\.com/embed/)([A-Za-z0-9_-]{11})"""
+    )
+
+    fun normalize(raw: String?): String? {
+        val value = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        urlPattern.find(value)?.groupValues?.getOrNull(1)?.let { return it }
+        return value
+    }
+}
+
 object YouTubeEmbedHtml {
     fun build(youtubeId: String, autoplay: Boolean = true): String {
         val autoplayParam = if (autoplay) "1" else "0"
+        val origin = Uri.encode(YOUTUBE_REFERER)
         return """
             <!DOCTYPE html>
             <html>
@@ -47,15 +64,24 @@ object YouTubeEmbedHtml {
             </head>
             <body>
             <iframe
-              src="https://www.youtube-nocookie.com/embed/$youtubeId?autoplay=$autoplayParam&rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
+              src="https://www.youtube-nocookie.com/embed/$youtubeId?autoplay=$autoplayParam&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=$origin"
               title="Exercise video"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerpolicy="strict-origin-when-cross-origin"
+              referrerpolicy="strict-origin"
               allowfullscreen>
             </iframe>
             </body>
             </html>
         """.trimIndent()
+    }
+}
+
+object YouTubeEmbedUrls {
+    fun embedUrl(youtubeId: String, autoplay: Boolean = true): String {
+        val autoplayParam = if (autoplay) "1" else "0"
+        val origin = Uri.encode(YOUTUBE_REFERER)
+        return "https://www.youtube-nocookie.com/embed/$youtubeId" +
+            "?autoplay=$autoplayParam&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=$origin"
     }
 }
 
@@ -65,7 +91,8 @@ fun YouTubeEmbedView(
     youtubeId: String,
     modifier: Modifier = Modifier
 ) {
-    val html = remember(youtubeId) { YouTubeEmbedHtml.build(youtubeId) }
+    val normalizedId = remember(youtubeId) { YouTubeIds.normalize(youtubeId) ?: youtubeId }
+    val embedUrl = remember(normalizedId) { YouTubeEmbedUrls.embedUrl(normalizedId) }
     var loadedId by remember { mutableStateOf<String?>(null) }
 
     AndroidView(
@@ -74,18 +101,18 @@ fun YouTubeEmbedView(
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
                 settings.mediaPlaybackRequiresUserGesture = false
+                settings.loadWithOverviewMode = true
+                settings.useWideViewPort = true
+                webChromeClient = WebChromeClient()
                 setBackgroundColor(android.graphics.Color.BLACK)
             }
         },
         update = { webView ->
-            if (loadedId != youtubeId) {
-                loadedId = youtubeId
-                webView.loadDataWithBaseURL(
-                    "https://fitproject.local/",
-                    html,
-                    "text/html",
-                    "UTF-8",
-                    null
+            if (loadedId != normalizedId) {
+                loadedId = normalizedId
+                webView.loadUrl(
+                    embedUrl,
+                    mapOf("Referer" to YOUTUBE_REFERER)
                 )
             }
         },
@@ -98,7 +125,9 @@ fun ExerciseVideoPreview(
     exercise: FPWorkoutExercise,
     modifier: Modifier = Modifier
 ) {
-    val youtubeId = exercise.youtubeId?.takeIf { it.isNotEmpty() }
+    val youtubeId = remember(exercise.id, exercise.youtubeId) {
+        YouTubeIds.normalize(exercise.youtubeId)
+    }
     val thumbnailUrl = exercise.videoThumbnailUrl
     if (youtubeId == null && thumbnailUrl == null) return
 
