@@ -23,9 +23,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -312,7 +312,7 @@ fun MainShell(appViewModel: AppViewModel) {
                             modifier = Modifier.weight(1f)
                         )
                         TabBarItem(
-                            icon = Icons.Default.MenuBook,
+                            icon = Icons.AutoMirrored.Filled.MenuBook,
                             label = AppTab.LEARN.label,
                             selected = selectedTab == AppTab.LEARN,
                             onClick = { appViewModel.setSelectedTab(AppTab.LEARN) },
