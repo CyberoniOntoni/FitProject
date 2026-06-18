@@ -45,19 +45,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import com.fitproject.droid.data.FPLoggedSet
 import com.fitproject.droid.data.FPWorkoutExercise
 import com.fitproject.droid.data.FPWorkoutMetric
 import com.fitproject.droid.data.WorkoutSessionState
 import com.fitproject.droid.ui.components.BWSPrimaryButton
+import com.fitproject.droid.ui.components.ExerciseVideoPreview
 import com.fitproject.droid.ui.components.PRBadge
 import com.fitproject.droid.ui.theme.BWSColors
 import com.fitproject.droid.ui.theme.BWSTypography
@@ -294,16 +293,8 @@ private fun ExerciseHeader(
             )
         }
 
-        exercise.videoThumbnailUrl?.let { url ->
-            AsyncImage(
-                model = url,
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
-            )
+        if (exercise.videoThumbnailUrl != null || !exercise.youtubeId.isNullOrEmpty()) {
+            ExerciseVideoPreview(exercise = exercise)
         }
 
         Text(exercise.name, style = BWSTypography.Headline, color = BWSColors.TextPrimary)

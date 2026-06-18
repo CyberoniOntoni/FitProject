@@ -397,9 +397,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
         }
     }
 
-    fun submitForm(form: FPForm, answers: List<FPFormAnswer>) {
-        val userId = _currentUser.value?.id ?: return
-        viewModelScope.launch {
+    suspend fun submitForm(form: FPForm, answers: List<FPFormAnswer>): Result<Unit> {
+        val userId = _currentUser.value?.id
+            ?: return Result.failure(IllegalStateException("Not signed in"))
+        return try {
             syncEngine.pushFormSubmission(
                 formId = form.id,
                 userId = userId,
@@ -407,6 +408,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application), Sy
                 callbacks = this@AppViewModel,
                 currentForms = _forms.value
             )
+            Result.success(Unit)
+        } catch (e: Exception) {
+            val message = e.localizedMessage ?: "Failed to submit form"
+            _syncError.value = message
+            Result.failure(e)
         }
     }
 

@@ -8,16 +8,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,9 +22,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.fitproject.droid.data.FPForm
-import com.fitproject.droid.data.FPFormAnswer
-import com.fitproject.droid.data.FPFormField
-import com.fitproject.droid.ui.components.BWSPrimaryButton
 import com.fitproject.droid.ui.screens.AddProgressPhotoScreen
 import com.fitproject.droid.ui.screens.FormsListScreen
 import com.fitproject.droid.ui.screens.HabitsScreen
@@ -257,94 +248,3 @@ fun ProfileSheetHeader(
     }
 }
 
-@Composable
-fun FormFillScreen(
-    form: FPForm,
-    onSubmit: (FPForm, List<FPFormAnswer>) -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var answers by remember(form.id) {
-        mutableStateOf(form.fields.associate { it.id to "" })
-    }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BWSColors.Background)
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp)
-    ) {
-        Text(
-            "← Back",
-            style = BWSTypography.Caption,
-            color = BWSColors.Accent,
-            modifier = Modifier.clickable(onClick = onDismiss)
-        )
-        Text(
-            form.title,
-            style = BWSTypography.Headline,
-            color = BWSColors.TextPrimary,
-            modifier = Modifier.padding(vertical = 12.dp)
-        )
-        form.description?.let {
-            Text(it, style = BWSTypography.Caption, color = BWSColors.TextSecondary)
-        }
-
-        form.fields.sortedBy { it.index }.forEach { field ->
-            FormFieldInput(
-                field = field,
-                value = answers[field.id] ?: "",
-                onValueChange = { answers = answers + (field.id to it) }
-            )
-        }
-
-        BWSPrimaryButton(
-            title = "Submit",
-            onClick = {
-                val formAnswers = form.fields.map { field ->
-                    FPFormAnswer(
-                        fieldId = field.id,
-                        question = field.question,
-                        type = field.type,
-                        value = answers[field.id] ?: ""
-                    )
-                }
-                onSubmit(form, formAnswers)
-                onDismiss()
-            },
-            modifier = Modifier.padding(top = 16.dp)
-        )
-    }
-}
-
-@Composable
-private fun FormFieldInput(
-    field: FPFormField,
-    value: String,
-    onValueChange: (String) -> Unit
-) {
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text(
-            field.question,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = BWSColors.TextPrimary
-        )
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
-            minLines = if (field.type == "TextArea") 3 else 1,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = BWSColors.TextPrimary,
-                unfocusedTextColor = BWSColors.TextPrimary,
-                focusedContainerColor = BWSColors.Surface,
-                unfocusedContainerColor = BWSColors.Surface,
-                focusedBorderColor = BWSColors.Accent.copy(alpha = 0.5f),
-                unfocusedBorderColor = BWSColors.SurfaceHighlight,
-                cursorColor = BWSColors.Accent
-            )
-        )
-    }
-}

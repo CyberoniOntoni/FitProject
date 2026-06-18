@@ -66,7 +66,7 @@ import com.fitproject.droid.data.AppTab
 import com.fitproject.droid.data.FPContent
 import com.fitproject.droid.data.FPForm
 import com.fitproject.droid.ui.components.BWSPrimaryButton
-import com.fitproject.droid.ui.navigation.FormFillScreen
+import com.fitproject.droid.ui.screens.FormFillScreen
 import com.fitproject.droid.ui.navigation.ProfileNavHost
 import com.fitproject.droid.ui.screens.ContentDetailScreen
 import com.fitproject.droid.ui.screens.HistoryScreen
@@ -406,7 +406,7 @@ fun MainShell(appViewModel: AppViewModel) {
             ) {
                 FormFillScreen(
                     form = form,
-                    onSubmit = appViewModel::submitForm,
+                    onSubmit = { f, answers -> appViewModel.submitForm(f, answers) },
                     onDismiss = { selectedForm = null }
                 )
             }
