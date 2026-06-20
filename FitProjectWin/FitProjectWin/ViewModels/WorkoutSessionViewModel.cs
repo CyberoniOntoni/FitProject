@@ -28,11 +28,13 @@ public partial class WorkoutSessionViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _isCompleting;
 
     private readonly List<FPPersonalRecord> _prs = [];
+    private readonly Microsoft.UI.Dispatching.DispatcherQueue? _dispatcher;
 
     public WorkoutSessionViewModel(AppDataService data, AuthService auth, FPWorkout workout, FPProgram? program)
     {
         _data = data;
         _auth = auth;
+        _dispatcher = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
         Workout = workout;
         Program = program;
         LoggedSets = data.BuildLoggedSets(workout);
@@ -124,7 +126,7 @@ public partial class WorkoutSessionViewModel : ObservableObject, IDisposable
                     _prs.Add(pr);
                     PrMessage = $"{pr.ExerciseName} — {pr.Value} kg";
                     ShowPrToast = true;
-                    Task.Delay(2500).ContinueWith(_ => ShowPrToast = false);
+                    _ = HidePrToastAfterDelayAsync();
                 }
             }
             if (int.TryParse(set.Rest, out var rest) && rest > 0)
@@ -149,6 +151,15 @@ public partial class WorkoutSessionViewModel : ObservableObject, IDisposable
             DateTime.UtcNow - _stopwatch.Elapsed,
             (int)_stopwatch.Elapsed.TotalSeconds, _prs);
         IsCompleting = false;
+    }
+
+    private async Task HidePrToastAfterDelayAsync()
+    {
+        await Task.Delay(2500);
+        if (_dispatcher is not null)
+            _dispatcher.TryEnqueue(() => ShowPrToast = false);
+        else
+            ShowPrToast = false;
     }
 
     private void StartRestTimer(int seconds)

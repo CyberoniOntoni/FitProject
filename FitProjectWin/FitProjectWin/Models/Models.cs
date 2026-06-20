@@ -477,9 +477,3 @@ public enum AppTab
     History
 }
 
-public sealed class NavItem
-{
-    public AppTab Tab { get; init; }
-    public string Label { get; init; } = "";
-    public string Icon { get; init; } = "";
-}

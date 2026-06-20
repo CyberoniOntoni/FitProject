@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FitProjectWin.Models;
@@ -7,15 +6,9 @@ namespace FitProjectWin.Services;
 
 public sealed class FirestoreService
 {
-    private readonly HttpClient _http;
     private readonly string _token;
 
-    public FirestoreService(string token)
-    {
-        _token = token;
-        _http = new HttpClient();
-        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-    }
+    public FirestoreService(string token) => _token = token;
 
     public async Task<FPUser> FetchUserProfileAsync(string userId)
     {
@@ -55,7 +48,7 @@ public sealed class FirestoreService
                 }
             }
         };
-        var response = await _http.PatchAsJsonAsync(url, body);
+        var response = await FirebaseHttp.PatchAsJsonAsync(_token, url, body);
         response.EnsureSuccessStatusCode();
     }
 
@@ -85,8 +78,12 @@ public sealed class FirestoreService
             .ToList();
     }
 
-    public async Task<List<FPProgram>> FetchAssignedProgramsAsync(string userId)
+    public async Task<List<FPAssignedProgram>> FetchAssignedProgramsAsync(string userId)
     {
+        var fromAssignments = await FetchAssignedProgramsFromCollectionAsync(userId);
+        if (fromAssignments.Count > 0)
+            return fromAssignments;
+
         var results = await RunQueryAsync(new
         {
             structuredQuery = new
@@ -107,14 +104,88 @@ public sealed class FirestoreService
 
         return results
             .Where(r => r.TryGetProperty("document", out _))
-            .Select(r => FirestoreParser.ParseProgram(r.GetProperty("document")))
+            .Select(r =>
+            {
+                var doc = r.GetProperty("document");
+                var program = FirestoreParser.ParseProgram(doc);
+                return new FPAssignedProgram
+                {
+                    Id = $"assigned-{DocumentId(doc)}",
+                    ProgramId = DocumentId(doc),
+                    UserId = userId,
+                    CoachId = program.CreatorIds.FirstOrDefault(),
+                    Program = program
+                };
+            })
             .ToList();
+    }
+
+    private async Task<List<FPAssignedProgram>> FetchAssignedProgramsFromCollectionAsync(string userId)
+    {
+        var results = await RunQueryAsync(new
+        {
+            structuredQuery = new
+            {
+                from = new[] { new { collectionId = "assignedPrograms" } },
+                where = new
+                {
+                    fieldFilter = new
+                    {
+                        field = new { fieldPath = "userId" },
+                        op = "EQUAL",
+                        value = new { stringValue = userId }
+                    }
+                },
+                limit = 50
+            }
+        });
+
+        var assignments = new List<FPAssignedProgram>();
+        foreach (var result in results.Where(r => r.TryGetProperty("document", out _)))
+        {
+            var doc = result.GetProperty("document");
+            var fields = doc.GetProperty("fields");
+            var programId = FirestoreParser.GetString(fields, "programId") ?? "";
+            var item = new FPAssignedProgram
+            {
+                Id = DocumentId(doc),
+                ProgramId = programId,
+                UserId = userId,
+                CoachId = FirestoreParser.GetString(fields, "coachId"),
+                StartDate = FirestoreParser.GetTimestamp(fields, "startDate"),
+                CurrentWeek = FirestoreParser.GetInt(fields, "currentWeek"),
+                CompletedWorkouts = FirestoreParser.GetInt(fields, "completedWorkouts")
+            };
+            if (!string.IsNullOrEmpty(programId))
+                item.Program = await FetchProgramAsync(programId);
+            assignments.Add(item);
+        }
+        return assignments;
+    }
+
+    public async Task<FPProgram?> FetchProgramAsync(string programId)
+    {
+        try
+        {
+            var doc = await GetDocumentAsync($"programs/{programId}");
+            return FirestoreParser.ParseProgram(doc);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string DocumentId(JsonElement doc)
+    {
+        var name = doc.GetProperty("name").GetString() ?? "";
+        return name.Split('/').LastOrDefault() ?? "";
     }
 
     public async Task<List<FPProgramWeek>> FetchProgramWeeksAsync(string programId)
     {
         var url = $"{FirebaseConfig.FirestoreBaseUrl}/programs/{programId}/programWeeks?pageSize=20";
-        var json = await _http.GetFromJsonAsync<JsonElement>(url);
+        var json = await FirebaseHttp.GetFromJsonAsync(_token, url);
         if (!json.TryGetProperty("documents", out var docs)) return [];
 
         var weeks = new List<FPProgramWeek>();
@@ -138,7 +209,7 @@ public sealed class FirestoreService
     public async Task<List<FPWorkout>> FetchWorkoutsAsync(string programId, string weekId)
     {
         var url = $"{FirebaseConfig.FirestoreBaseUrl}/programs/{programId}/programWeeks/{weekId}/workouts?pageSize=20";
-        var json = await _http.GetFromJsonAsync<JsonElement>(url);
+        var json = await FirebaseHttp.GetFromJsonAsync(_token, url);
         if (!json.TryGetProperty("documents", out var docs)) return [];
 
         return docs.EnumerateArray()
@@ -367,7 +438,7 @@ public sealed class FirestoreService
             fields = FirestoreParser.FirestoreUserHabitLogFields(
                 habit, userId, value, date, habit.LogDateCreated)
         };
-        var response = await _http.PatchAsJsonAsync(url, body);
+        var response = await FirebaseHttp.PatchAsJsonAsync(_token, url, body);
         response.EnsureSuccessStatusCode();
     }
 
@@ -528,7 +599,7 @@ public sealed class FirestoreService
 
         var url = $"{FirebaseConfig.FirestoreBaseUrl}/measurementLogs/{m.Id}";
         var body = new { fields = FirestoreParser.FirestoreMeasurementLogFields(m, userId, type) };
-        var response = await _http.PatchAsJsonAsync(url, body);
+        var response = await FirebaseHttp.PatchAsJsonAsync(_token, url, body);
         response.EnsureSuccessStatusCode();
     }
 
@@ -668,14 +739,14 @@ public sealed class FirestoreService
                 ["newResponses"] = FirestoreParser.FirestoreValue(newResponses)
             }
         };
-        var response = await _http.PatchAsJsonAsync(url, body);
+        var response = await FirebaseHttp.PatchAsJsonAsync(_token, url, body);
         response.EnsureSuccessStatusCode();
     }
 
     private async Task<JsonElement> GetDocumentAsync(string path)
     {
         var url = $"{FirebaseConfig.FirestoreBaseUrl}/{path}";
-        var response = await _http.GetAsync(url);
+        var response = await FirebaseHttp.GetAsync(_token, url);
         response.EnsureSuccessStatusCode();
         var doc = await response.Content.ReadFromJsonAsync<JsonElement>();
         if (doc.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
@@ -687,14 +758,14 @@ public sealed class FirestoreService
     {
         var url = $"{FirebaseConfig.FirestoreBaseUrl}/{path}";
         var body = new { fields = FirestoreParser.FirestoreFields(data) };
-        var response = await _http.PatchAsJsonAsync(url, body);
+        var response = await FirebaseHttp.PatchAsJsonAsync(_token, url, body);
         response.EnsureSuccessStatusCode();
     }
 
     private async Task<List<JsonElement>> RunQueryAsync(object query)
     {
         var url = $"{FirebaseConfig.FirestoreBaseUrl}:runQuery";
-        var response = await _http.PostAsJsonAsync(url, query);
+        var response = await FirebaseHttp.PostAsJsonAsync(_token, url, query);
         if (!response.IsSuccessStatusCode) return [];
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         if (json.ValueKind != JsonValueKind.Array) return [];

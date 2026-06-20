@@ -509,6 +509,7 @@ fun MainShell(
             ) {
                 FormFillScreen(
                     form = form,
+                    userId = currentUser?.id,
                     onSubmit = { f, answers -> appViewModel.submitForm(f, answers) },
                     onDismiss = { selectedForm = null }
                 )

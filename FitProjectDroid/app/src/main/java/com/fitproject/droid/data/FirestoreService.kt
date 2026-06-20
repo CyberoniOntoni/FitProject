@@ -533,7 +533,9 @@ class FirestoreService private constructor() {
         val ref = db.collection("forms").document(formId)
         val doc = ref.get().await()
         val data = doc.data ?: throw FitProsError.NotFound("Form")
-        val submissions = parseFormSubmissions(data).toMutableList()
+        val submissions = parseFormSubmissions(data)
+            .filter { it.clientId != clientId }
+            .toMutableList()
         submissions.add(FPFormSubmission(clientId = clientId, submittedAt = Date(), answers = answers))
         val newResponses = ((data["newResponses"] as? Long)?.toInt() ?: 0) + 1
         ref.update(

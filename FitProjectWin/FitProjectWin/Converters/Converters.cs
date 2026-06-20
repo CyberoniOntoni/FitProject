@@ -12,6 +12,15 @@ public sealed class NullToCollapsedConverter : IValueConverter
         throw new NotSupportedException();
 }
 
+public sealed class BoolToVisibleConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language) =>
+        value is bool b && b ? Visibility.Visible : Visibility.Collapsed;
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language) =>
+        throw new NotSupportedException();
+}
+
 public sealed class InvertBoolConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language) =>

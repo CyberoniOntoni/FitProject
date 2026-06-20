@@ -77,7 +77,7 @@ fun LearnScreen(
                         FormCard(
                             form = form,
                             completed = completed,
-                            onClick = { if (!completed) onFormTap(form) }
+                            onClick = { onFormTap(form) }
                         )
                     }
                 }
@@ -135,7 +135,7 @@ fun FormsListScreen(
                 FormCard(
                     form = form,
                     completed = completed,
-                    onClick = { if (!completed) onFormTap(form) }
+                    onClick = { onFormTap(form) }
                 )
             }
         }
@@ -170,7 +170,7 @@ private fun FormCard(
     BWSCard(
         modifier = Modifier
             .padding(horizontal = 20.dp)
-            .then(if (!completed) Modifier.clickable(onClick = onClick) else Modifier)
+            .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -186,9 +186,17 @@ private fun FormCard(
                 form.description?.let {
                     Text(it, style = BWSTypography.Caption, color = BWSColors.TextSecondary, maxLines = 2)
                 }
+                if (completed) {
+                    Text(
+                        "Completed · tap to retake",
+                        style = BWSTypography.Caption,
+                        color = BWSColors.TextTertiary
+                    )
+                }
             }
             if (completed) {
                 Icon(Icons.Default.CheckCircle, null, tint = BWSColors.Success)
+                Spacer(modifier = Modifier.width(4.dp))
             } else {
                 Text(
                     "Pending",
@@ -201,8 +209,8 @@ private fun FormCard(
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = BWSColors.TextTertiary)
             }
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = BWSColors.TextTertiary)
         }
     }
 }

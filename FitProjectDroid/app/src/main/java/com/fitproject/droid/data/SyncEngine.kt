@@ -183,8 +183,9 @@ class SyncEngine {
         firestore.submitForm(formId, userId, answers)
         val updated = currentForms.map { form ->
             if (form.id == formId) {
+                val retained = form.submissions.filter { it.clientId != userId }
                 form.copy(
-                    submissions = form.submissions + FPFormSubmission(
+                    submissions = retained + FPFormSubmission(
                         clientId = userId,
                         submittedAt = Date(),
                         answers = answers

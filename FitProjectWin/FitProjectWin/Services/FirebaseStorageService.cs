@@ -6,15 +6,9 @@ namespace FitProjectWin.Services;
 
 public sealed class FirebaseStorageService
 {
-    private readonly HttpClient _http;
     private readonly string _token;
 
-    public FirebaseStorageService(string token)
-    {
-        _token = token;
-        _http = new HttpClient();
-        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-    }
+    public FirebaseStorageService(string token) => _token = token;
 
     public async Task<string> UploadProgressPhotoAsync(string userId, string sessionId, string poseType, string filePath)
     {
@@ -33,7 +27,7 @@ public sealed class FirebaseStorageService
 
         using var content = new ByteArrayContent(bytes);
         content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-        var response = await _http.PostAsync(url, content);
+        var response = await FirebaseHttp.PostAsync(_token, url, content);
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();

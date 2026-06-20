@@ -552,6 +552,9 @@ data class FPForm(
     var dueDate: Date? = null
 ) {
     fun isCompleted(userId: String): Boolean = submissions.any { it.clientId == userId }
+
+    fun latestSubmission(userId: String): FPFormSubmission? =
+        submissions.filter { it.clientId == userId }.maxByOrNull { it.submittedAt }
 }
 
 // MARK: - Assigned Program

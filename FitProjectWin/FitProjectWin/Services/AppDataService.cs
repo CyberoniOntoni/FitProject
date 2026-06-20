@@ -5,6 +5,9 @@ namespace FitProjectWin.Services;
 public sealed class AppDataService
 {
     private readonly AuthService _auth;
+    private FirestoreService? _firestore;
+    private FirebaseStorageService? _storage;
+    private string? _cachedToken;
 
     public List<FPProgram> Programs { get; private set; } = [];
     public Dictionary<string, List<FPProgramWeek>> ProgramWeeks { get; private set; } = new();
@@ -26,9 +29,27 @@ public sealed class AppDataService
     public bool IsSyncing { get; private set; }
     public string? SyncError { get; private set; }
 
+    public string FormattedLastSyncDate => LastSyncDate?.ToString("g") ?? "Never";
+
     public event Action? DataChanged;
 
     public AppDataService(AuthService auth) => _auth = auth;
+
+    private FirestoreService GetFirestore()
+    {
+        var token = _auth.IdToken ?? throw new InvalidOperationException("Not authenticated");
+        if (_firestore is null || _cachedToken != token)
+        {
+            _firestore = new FirestoreService(token);
+            _storage = new FirebaseStorageService(token);
+            _cachedToken = token;
+        }
+        return _firestore;
+    }
+
+    private FirebaseStorageService GetStorage() => GetFirestore() is not null
+        ? _storage ?? throw new InvalidOperationException("Storage not initialized")
+        : throw new InvalidOperationException("Storage not initialized");
 
     public async Task FullSyncAsync()
     {
@@ -40,42 +61,55 @@ public sealed class AppDataService
 
         try
         {
-            var fs = new FirestoreService(_auth.IdToken);
+            var fs = GetFirestore();
             var userId = _auth.CurrentUser.Id;
 
-            var creatorPrograms = await fs.FetchCreatorProgramsAsync(userId);
-            var assignedPrograms = await fs.FetchAssignedProgramsAsync(userId);
-            var programs = creatorPrograms.ToList();
-            foreach (var assigned in assignedPrograms)
-                if (!programs.Any(p => p.Id == assigned.Id))
-                    programs.Add(assigned);
+            var profileTask = fs.FetchUserProfileAsync(userId);
+            var creatorTask = fs.FetchCreatorProgramsAsync(userId);
+            var assignedTask = fs.FetchAssignedProgramsAsync(userId);
+            var logsTask = fs.FetchWorkoutLogsAsync(userId);
+            var habitsTask = fs.FetchHabitsAsync(userId);
+            var picturesTask = fs.FetchProgressPicturesAsync(userId);
+            var measurementsTask = fs.FetchAllMeasurementsAsync(userId);
+            var contentTask = fs.FetchContentAsync(userId);
+            var recordsTask = fs.FetchPersonalRecordsAsync(userId);
+            var formsTask = fs.FetchFormsAsync(userId);
 
-            var logs = await fs.FetchWorkoutLogsAsync(userId);
-            var habits = await fs.FetchHabitsAsync(userId);
-            var progressPictures = await fs.FetchProgressPicturesAsync(userId);
-            var profile = await fs.FetchUserProfileAsync(userId);
-            var measurements = await fs.FetchAllMeasurementsAsync(userId);
-            var content = await fs.FetchContentAsync(userId);
-            var records = await fs.FetchPersonalRecordsAsync(userId);
-            var forms = await fs.FetchFormsAsync(userId);
+            await Task.WhenAll(
+                profileTask, creatorTask, assignedTask, logsTask, habitsTask,
+                picturesTask, measurementsTask, contentTask, recordsTask, formsTask);
+
+            var profile = await profileTask;
+            var creatorPrograms = await creatorTask;
+            var assignedPrograms = await assignedTask;
+            var programs = MergePrograms(profile.CoachHasProTools, creatorPrograms, assignedPrograms);
 
             var weeks = new Dictionary<string, List<FPProgramWeek>>();
-            foreach (var program in programs)
-                weeks[program.Id] = await fs.FetchProgramWeeksAsync(program.Id);
+            await Parallel.ForEachAsync(
+                programs,
+                new ParallelOptions { MaxDegreeOfParallelism = 4 },
+                async (program, _) =>
+                {
+                    var programWeeks = await fs.FetchProgramWeeksAsync(program.Id);
+                    lock (weeks)
+                    {
+                        weeks[program.Id] = programWeeks;
+                    }
+                });
 
             Programs = programs;
             ProgramWeeks = weeks;
-            WorkoutLogs = logs;
-            Habits = habits;
-            AllProgressPictures = progressPictures;
-            ProgressSessions = fs.GroupProgressSessions(progressPictures);
+            WorkoutLogs = await logsTask;
+            Habits = await habitsTask;
+            AllProgressPictures = await picturesTask;
+            ProgressSessions = FirestoreParser.GroupProgressSessions(AllProgressPictures);
             UnitPreferences = profile.UnitPreferences;
             if (_auth.CurrentUser is not null)
                 _auth.CurrentUser.UnitPreferences = profile.UnitPreferences;
-            Measurements = measurements;
-            Content = content;
-            PersonalRecords = records;
-            Forms = forms;
+            Measurements = await measurementsTask;
+            Content = await contentTask;
+            PersonalRecords = await recordsTask;
+            Forms = await formsTask;
             LastSyncDate = DateTime.Now;
 
             UpdateWeeklyProgress();
@@ -90,6 +124,60 @@ public sealed class AppDataService
             IsSyncing = false;
             DataChanged?.Invoke();
         }
+    }
+
+    public async Task RefreshHabitsAndLogsAsync()
+    {
+        if (_auth.CurrentUser is null || _auth.IdToken is null) return;
+
+        try
+        {
+            var fs = GetFirestore();
+            var userId = _auth.CurrentUser.Id;
+            var logsTask = fs.FetchWorkoutLogsAsync(userId);
+            var habitsTask = fs.FetchHabitsAsync(userId);
+            await Task.WhenAll(logsTask, habitsTask);
+
+            WorkoutLogs = await logsTask;
+            Habits = await habitsTask;
+            UpdateWeeklyProgress();
+            SelectNextWorkout();
+            DataChanged?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            SyncError = ex.Message;
+            DataChanged?.Invoke();
+        }
+    }
+
+    private static List<FPProgram> MergePrograms(
+        bool isCoach,
+        List<FPProgram> creatorPrograms,
+        List<FPAssignedProgram> assignedPrograms)
+    {
+        if (isCoach)
+        {
+            var programs = creatorPrograms.ToList();
+            foreach (var item in assignedPrograms)
+            {
+                var program = item.Program;
+                if (program is null || programs.Any(p => p.Id == program.Id)) continue;
+                program.CompletedWorkouts = item.CompletedWorkouts;
+                programs.Add(program);
+            }
+            return programs;
+        }
+
+        return assignedPrograms
+            .Where(item => item.Program is not null)
+            .Select(item =>
+            {
+                var program = item.Program!;
+                program.CompletedWorkouts = item.CompletedWorkouts;
+                return program;
+            })
+            .ToList();
     }
 
     public void UpdateWeeklyProgress()
@@ -232,7 +320,7 @@ public sealed class AppDataService
             PrCount = prCount
         };
 
-        var fs = new FirestoreService(_auth.IdToken);
+        var fs = GetFirestore();
         await fs.SaveWorkoutLogAsync(log);
         foreach (var pr in prs)
             await fs.SavePersonalRecordAsync(pr, _auth.CurrentUser.Id);
@@ -250,7 +338,7 @@ public sealed class AppDataService
         var habit = Habits.FirstOrDefault(h => h.Id == habitId);
         if (habit is null) return;
 
-        var fs = new FirestoreService(_auth.IdToken);
+        var fs = GetFirestore();
         await fs.SaveUserHabitLogAsync(habit, _auth.CurrentUser.Id, value);
         habit.CurrentValue = value;
         habit.TargetMet = HabitSyncHelper.IsTargetMet(habit.TargetType, habit.TargetMin, habit.TargetMax, value);
@@ -261,7 +349,7 @@ public sealed class AppDataService
     public async Task UpdateUnitPreferenceAsync(string key, string value)
     {
         if (_auth.CurrentUser is null || _auth.IdToken is null) return;
-        var fs = new FirestoreService(_auth.IdToken);
+        var fs = GetFirestore();
         await fs.UpdateUnitPreferenceAsync(_auth.CurrentUser.Id, key, value);
 
         switch (key)
@@ -280,8 +368,8 @@ public sealed class AppDataService
     {
         if (_auth.CurrentUser is null || _auth.IdToken is null) return;
 
-        var storage = new FirebaseStorageService(_auth.IdToken);
-        var fs = new FirestoreService(_auth.IdToken);
+        var storage = GetStorage();
+        var fs = GetFirestore();
         var userId = _auth.CurrentUser.Id;
         var poses = new List<(string PoseType, string ImageUrl, string? ExistingId)>();
 
@@ -308,14 +396,14 @@ public sealed class AppDataService
         }).ToList();
 
         AllProgressPictures.InsertRange(0, pictures);
-        ProgressSessions = new FirestoreService(_auth.IdToken).GroupProgressSessions(AllProgressPictures);
+        ProgressSessions = FirestoreParser.GroupProgressSessions(AllProgressPictures);
         DataChanged?.Invoke();
     }
 
     public async Task SaveMeasurementAsync(FPMeasurement measurement)
     {
         if (_auth.CurrentUser is null || _auth.IdToken is null) return;
-        var fs = new FirestoreService(_auth.IdToken);
+        var fs = GetFirestore();
         await fs.SaveMeasurementAsync(measurement, _auth.CurrentUser.Id);
         Measurements.Insert(0, measurement);
         DataChanged?.Invoke();
@@ -324,7 +412,7 @@ public sealed class AppDataService
     public async Task SubmitFormAsync(string formId, List<FPFormAnswer> answers)
     {
         if (_auth.CurrentUser is null || _auth.IdToken is null) return;
-        var fs = new FirestoreService(_auth.IdToken);
+        var fs = GetFirestore();
         await fs.SubmitFormAsync(formId, _auth.CurrentUser.Id, answers);
 
         var form = Forms.FirstOrDefault(f => f.Id == formId);
@@ -356,6 +444,9 @@ public sealed class AppDataService
         Forms = [];
         NextWorkout = null;
         NextProgram = null;
+        _firestore = null;
+        _storage = null;
+        _cachedToken = null;
         DataChanged?.Invoke();
     }
 }

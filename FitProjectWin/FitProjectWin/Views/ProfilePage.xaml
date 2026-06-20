@@ -22,12 +22,18 @@
             </StackPanel>
 
             <Border Style="{StaticResource CardBorderStyle}">
-                <StackPanel Spacing="4">
+                <StackPanel Spacing="6">
                     <TextBlock Text="FitPros.io Sync" Style="{StaticResource SectionTitleStyle}" />
-                    <TextBlock Style="{StaticResource CaptionStyle}">
-                        <Run Text="Last synced " />
-                        <Run Text="{x:Bind ViewModel.Data.LastSyncDate, Mode=OneWay}" />
-                    </TextBlock>
+                    <TextBlock Text="{x:Bind ViewModel.Data.FormattedLastSyncDate, Mode=OneWay}"
+                               Style="{StaticResource CaptionStyle}" />
+                    <TextBlock Text="Syncing..."
+                               Style="{StaticResource CaptionStyle}"
+                               Foreground="{StaticResource AccentBrush}"
+                               Visibility="{x:Bind ViewModel.Data.IsSyncing, Converter={StaticResource BoolToVisible}, Mode=OneWay}" />
+                    <TextBlock Text="{x:Bind ViewModel.Data.SyncError, Mode=OneWay}"
+                               Style="{StaticResource CaptionStyle}"
+                               Foreground="{StaticResource ErrorBrush}"
+                               Visibility="{x:Bind ViewModel.Data.SyncError, Converter={StaticResource NullToCollapsed}, Mode=OneWay}" />
                 </StackPanel>
             </Border>
 
@@ -180,7 +186,8 @@
             </StackPanel>
 
             <Button Content="Refresh Data" Style="{StaticResource PrimaryButtonStyle}"
-                    Command="{x:Bind ViewModel.RefreshCommand}" />
+                    Command="{x:Bind ViewModel.RefreshCommand}"
+                    IsEnabled="{x:Bind ViewModel.Data.IsSyncing, Converter={StaticResource InvertBool}, Mode=OneWay}" />
 
             <Button Content="Sign Out" HorizontalAlignment="Stretch"
                     Background="{StaticResource SurfaceHighlightBrush}"

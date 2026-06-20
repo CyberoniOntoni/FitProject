@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -54,17 +56,15 @@ import kotlinx.coroutines.launch
 @Composable
 fun FormFillScreen(
     form: FPForm,
+    userId: String?,
     onSubmit: suspend (FPForm, List<FPFormAnswer>) -> Result<Unit>,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
-    var answers by remember(form.id) {
-        mutableStateOf(
-            form.fields.associate { field ->
-                field.id to defaultAnswerForField(field)
-            }
-        )
+    val isRetake = userId != null && form.isCompleted(userId)
+    var answers by remember(form.id, userId) {
+        mutableStateOf(initialAnswersForForm(form, userId))
     }
     var isSubmitting by remember { mutableStateOf(false) }
     var validationMessage by remember { mutableStateOf<String?>(null) }
@@ -73,6 +73,8 @@ fun FormFillScreen(
         modifier = modifier
             .fillMaxSize()
             .background(BWSColors.Background)
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -102,7 +104,11 @@ fun FormFillScreen(
         }
 
         BWSPrimaryButton(
-            title = if (isSubmitting) "Submitting…" else "Submit Form",
+            title = when {
+                isSubmitting -> "Submitting…"
+                isRetake -> "Resubmit Assessment"
+                else -> "Submit Form"
+            },
             isLoading = isSubmitting,
             enabled = !isSubmitting,
             onClick = {
@@ -407,6 +413,16 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedBorderColor = BWSColors.SurfaceHighlight,
     cursorColor = BWSColors.Accent
 )
+
+private fun initialAnswersForForm(form: FPForm, userId: String?): Map<String, String> {
+    val previous = userId?.let { form.latestSubmission(it) }?.answers.orEmpty()
+    return form.fields.associate { field ->
+        field.id to (
+            previous.find { it.fieldId == field.id }?.value
+                ?: defaultAnswerForField(field)
+            )
+    }
+}
 
 private fun defaultAnswerForField(field: FPFormField): String =
     if (field.type == "Linear Scale") {

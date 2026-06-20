@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -102,7 +104,11 @@ fun WorkoutSessionScreen(
             .fillMaxSize()
             .background(BWSColors.Background)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+        ) {
             SessionHeader(
                 workoutName = session.workout.name,
                 elapsed = viewModel.formatElapsed(elapsed),
@@ -179,7 +185,9 @@ fun WorkoutSessionScreen(
             modifier = Modifier.align(Alignment.TopCenter)
         ) {
             Column(
-                modifier = Modifier.padding(top = 60.dp),
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .padding(top = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 PRBadge()
@@ -581,6 +589,7 @@ private fun BottomBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(BWSColors.SurfaceElevated)
+            .navigationBarsPadding()
             .padding(horizontal = 20.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically

@@ -9,6 +9,7 @@ namespace FitProjectWin;
 public sealed partial class MainWindow : Window
 {
     private readonly MainViewModel _vm = App.ViewModel;
+    private readonly Dictionary<string, Page> _pages = new();
     private string _activeNav = "Train";
 
     public MainWindow()
@@ -80,22 +81,32 @@ public sealed partial class MainWindow : Window
         _activeNav = tag;
         UpdateNavHighlight();
 
-        Page? page = tag switch
+        if (!_pages.TryGetValue(tag, out var page))
         {
-            "Train" => new TrainPage(),
-            "Programs" => new ProgramsPage(),
-            "Learn" => new LearnPage(),
-            "History" => new HistoryPage(),
-            "Profile" => new ProfilePage(),
-            "Habits" => new HabitsPage(),
-            "ProgressPhotos" => new ProgressPhotosPage(),
-            "AddProgressPhoto" => new AddProgressPhotoPage(),
-            "Settings" => new SettingsPage(),
-            "Measurements" => new MeasurementsPage(),
-            "PersonalRecords" => new PersonalRecordsPage(),
-            _ => null
-        };
-        if (page is not null) ContentFrame.Content = page;
+            page = tag switch
+            {
+                "Train" => new TrainPage(),
+                "Programs" => new ProgramsPage(),
+                "Learn" => new LearnPage(),
+                "History" => new HistoryPage(),
+                "Profile" => new ProfilePage(),
+                "Habits" => new HabitsPage(),
+                "ProgressPhotos" => new ProgressPhotosPage(),
+                "AddProgressPhoto" => new AddProgressPhotoPage(),
+                "Settings" => new SettingsPage(),
+                "Measurements" => new MeasurementsPage(),
+                "PersonalRecords" => new PersonalRecordsPage(),
+                _ => null
+            };
+            if (page is not null)
+                _pages[tag] = page;
+        }
+
+        if (page is not null)
+            ContentFrame.Content = page;
+
+        if (tag == "Train" && _vm.IsAuthenticated)
+            _ = _vm.Data.RefreshHabitsAndLogsAsync();
     }
 
     private void UpdateNavHighlight()

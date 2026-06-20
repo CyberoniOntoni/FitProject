@@ -10,7 +10,6 @@ public partial class MainViewModel : ObservableObject
     public AuthService Auth { get; }
     public AppDataService Data { get; }
 
-    [ObservableProperty] private AppTab _selectedTab = AppTab.Train;
     [ObservableProperty] private bool _isAuthenticated;
     [ObservableProperty] private string _loginEmail = "";
     [ObservableProperty] private string _loginPassword = "";
@@ -24,20 +23,12 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private FPWorkoutLog? _activeWorkoutLog;
     [ObservableProperty] private bool _showWorkoutLogDetail;
 
-    public List<NavItem> NavItems { get; } =
-    [
-        new() { Tab = AppTab.Train, Label = "Train", Icon = "\uE7B3" },
-        new() { Tab = AppTab.Programs, Label = "Programs", Icon = "\uE8FD" },
-        new() { Tab = AppTab.Learn, Label = "Learn", Icon = "\uE82D" },
-        new() { Tab = AppTab.History, Label = "History", Icon = "\uE81C" }
-    ];
-
     public MainViewModel()
     {
         Auth = new AuthService();
         Data = new AppDataService(Auth);
         Auth.AuthStateChanged += OnAuthChanged;
-        Data.DataChanged += () => OnPropertyChanged(string.Empty);
+        Data.DataChanged += OnDataChanged;
         IsAuthenticated = Auth.IsAuthenticated;
     }
 
@@ -45,6 +36,15 @@ public partial class MainViewModel : ObservableObject
     {
         IsAuthenticated = Auth.IsAuthenticated;
         if (!IsAuthenticated) Data.Clear();
+    }
+
+    private void OnDataChanged()
+    {
+        OnPropertyChanged(nameof(Greeting));
+        OnPropertyChanged(nameof(TodayDate));
+        OnPropertyChanged(nameof(WeeklyProgress));
+        OnPropertyChanged(nameof(WeeklyProgressPercent));
+        RefreshCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand]
@@ -63,11 +63,14 @@ public partial class MainViewModel : ObservableObject
         LoginPassword = "";
     }
 
-    [RelayCommand]
-    private async Task RefreshAsync() => await Data.FullSyncAsync();
+    [RelayCommand(CanExecute = nameof(CanRefresh))]
+    private async Task RefreshAsync()
+    {
+        await Data.FullSyncAsync();
+        RefreshCommand.NotifyCanExecuteChanged();
+    }
 
-    [RelayCommand]
-    private void NavigateTo(AppTab tab) => SelectedTab = tab;
+    private bool CanRefresh() => !Data.IsSyncing;
 
     [RelayCommand]
     private void StartWorkout(FPWorkout? workout)

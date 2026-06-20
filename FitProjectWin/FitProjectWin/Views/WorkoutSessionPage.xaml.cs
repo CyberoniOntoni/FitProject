@@ -173,11 +173,11 @@ public sealed partial class WorkoutSessionPage : Page
         };
         var setsPanel = new StackPanel { Spacing = 8 };
 
-        var header = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(32) });
+        var header = new Grid { Margin = new Thickness(0, 0, 0, 4), Height = WorkoutMetricFormat.RowHeight() };
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(WorkoutMetricFormat.SetColumnWidth()) });
         foreach (var metric in _vm.CurrentMetrics)
             header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(WorkoutMetricFormat.FieldWidth(metric.Name)) });
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(WorkoutMetricFormat.CompleteColumnWidth()) });
 
         header.Children.Add(new TextBlock
         {
@@ -194,9 +194,10 @@ public sealed partial class WorkoutSessionPage : Page
             var tb = new TextBlock
             {
                 Text = metricName.ToUpperInvariant(),
-                FontSize = WorkoutMetricFormat.IsHighlighted(metricName) ? 12 : 11,
+                FontSize = 10,
                 FontWeight = Microsoft.UI.Text.FontWeights.Bold,
                 Foreground = new SolidColorBrush(MetricColor(metricName)),
+                VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Center
             };
             Grid.SetColumn(tb, i + 1);
@@ -247,57 +248,49 @@ public sealed partial class WorkoutSessionPage : Page
 
     private Grid BuildSetRow(FPLoggedSet set)
     {
-        var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(32) });
+        var rowHeight = WorkoutMetricFormat.RowHeight();
+        var fieldHeight = WorkoutMetricFormat.FieldHeight("");
+        var fieldStyle = (Style)Application.Current.Resources["WorkoutMetricFieldStyle"];
+        var row = new Grid
+        {
+            Height = rowHeight,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(WorkoutMetricFormat.SetColumnWidth()) });
         foreach (var metric in _vm!.CurrentMetrics)
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(WorkoutMetricFormat.FieldWidth(metric.Name)) });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(WorkoutMetricFormat.CompleteColumnWidth()) });
 
-        var setNum = new TextBlock
-        {
-            Text = set.SetNumber.ToString(),
-            FontSize = 15,
-            FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Foreground = set.IsCompleted
+        var setBox = CreateMetricTextBox(
+            fieldStyle,
+            set.SetNumber.ToString(),
+            WorkoutMetricFormat.SetColumnWidth(),
+            fieldHeight,
+            isReadOnly: true,
+            foreground: set.IsCompleted
                 ? (Brush)Application.Current.Resources["AccentBrush"]!
-                : (Brush)Application.Current.Resources["TextSecondaryBrush"]!
-        };
-        row.Children.Add(setNum);
+                : (Brush)Application.Current.Resources["TextSecondaryBrush"]!);
+        Grid.SetColumn(setBox, 0);
+        row.Children.Add(setBox);
 
         for (var i = 0; i < _vm.CurrentMetrics.Count; i++)
         {
             var metric = _vm.CurrentMetrics[i];
             var metricName = metric.Name;
+            var fieldWidth = WorkoutMetricFormat.FieldWidth(metricName);
             var color = MetricColor(metricName);
             var highlighted = WorkoutMetricFormat.IsHighlighted(metricName);
             var displayValue = metricName == "Tempo"
                 ? WorkoutMetricFormat.FormatTempoDisplay(GetMetricValue(set, metricName))
                 : GetMetricValue(set, metricName) ?? "";
 
-            var box = new TextBox
-            {
-                Text = displayValue,
-                PlaceholderText = metricName == "Tempo" ? "301" : "",
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Center,
-                Height = WorkoutMetricFormat.FieldHeight(metricName),
-                MinHeight = WorkoutMetricFormat.FieldHeight(metricName),
-                MaxHeight = WorkoutMetricFormat.FieldHeight(metricName),
-                FontSize = highlighted ? 14 : 13,
-                FontWeight = highlighted ? Microsoft.UI.Text.FontWeights.Bold : Microsoft.UI.Text.FontWeights.SemiBold,
-                TextAlignment = TextAlignment.Center,
-                VerticalContentAlignment = VerticalAlignment.Center,
-                Padding = new Thickness(4, 0, 4, 0),
-                Background = new SolidColorBrush(Color.FromArgb(highlighted ? (byte)46 : (byte)20, color.R, color.G, color.B)),
-                Foreground = new SolidColorBrush(color),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(highlighted ? (byte)90 : (byte)56, color.R, color.G, color.B)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8)
-            };
-            ScrollViewer.SetVerticalScrollMode(box, ScrollMode.Disabled);
-            ScrollViewer.SetVerticalScrollBarVisibility(box, ScrollBarVisibility.Disabled);
+            var box = CreateMetricTextBox(
+                fieldStyle,
+                displayValue,
+                fieldWidth,
+                fieldHeight,
+                placeholder: metricName == "Tempo" ? "301" : null,
+                foreground: new SolidColorBrush(color));
             var capturedMetric = metricName;
             box.TextChanged += (_, _) =>
             {
@@ -308,17 +301,33 @@ public sealed partial class WorkoutSessionPage : Page
                         : sanitized;
                 SetMetricValue(set, capturedMetric, sanitized);
             };
-            Grid.SetColumn(box, i + 1);
-            row.Children.Add(box);
+
+            var field = new Border
+            {
+                Width = fieldWidth,
+                Height = fieldHeight,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                CornerRadius = new CornerRadius(0),
+                Background = new SolidColorBrush(Color.FromArgb(highlighted ? (byte)46 : (byte)20, color.R, color.G, color.B)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(highlighted ? (byte)90 : (byte)56, color.R, color.G, color.B)),
+                BorderThickness = new Thickness(1),
+                Child = box
+            };
+            Grid.SetColumn(field, i + 1);
+            row.Children.Add(field);
         }
 
         var check = new Button
         {
             Content = set.IsCompleted ? "✓" : "○",
             Tag = set,
-            Width = 36,
-            Height = 36,
-            CornerRadius = new CornerRadius(18),
+            Width = WorkoutMetricFormat.CompleteColumnWidth(),
+            Height = WorkoutMetricFormat.CompleteColumnWidth(),
+            Padding = new Thickness(0),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            CornerRadius = new CornerRadius(4),
             Background = set.IsCompleted
                 ? (Brush)Application.Current.Resources["AccentBrush"]!
                 : (Brush)Application.Current.Resources["SurfaceHighlightBrush"]!
@@ -328,6 +337,39 @@ public sealed partial class WorkoutSessionPage : Page
         row.Children.Add(check);
 
         return row;
+    }
+
+    private static TextBox CreateMetricTextBox(
+        Style style,
+        string text,
+        double width,
+        double height,
+        bool isReadOnly = false,
+        string? placeholder = null,
+        Brush? foreground = null)
+    {
+        var box = new TextBox
+        {
+            Style = style,
+            Text = text,
+            PlaceholderText = placeholder ?? "",
+            Width = width,
+            Height = height,
+            MinWidth = width,
+            MaxWidth = width,
+            MinHeight = height,
+            MaxHeight = height,
+            Padding = WorkoutMetricFormat.FieldTextPadding(),
+            IsReadOnly = isReadOnly,
+            IsTabStop = !isReadOnly,
+            FontSize = WorkoutMetricFormat.FieldFontSize(),
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch
+        };
+        if (foreground != null)
+            box.Foreground = foreground;
+        return box;
     }
 
     private static Color MetricColor(string name) => name switch
