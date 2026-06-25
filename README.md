@@ -85,8 +85,7 @@ FitProjectDroid/
 ## Build & run (Android)
 
 1. Clone the repo and open `FitProjectDroid` in Android Studio.
-2. Add `app/google-services.json` from your Firebase project (same project as FitPros.io).
-3. Sync Gradle and run on a device or emulator (API 26+).
+2. Sync Gradle and run on a device or emulator (API 26+).
 
 ```bash
 cd FitProjectDroid
@@ -99,7 +98,7 @@ For Health Connect on emulator/device, install the [Health Connect app](https://
 
 ## Branches
 
-- **`main`** — stable line
+- **`main`** — stable line (kinda)
 - **`experimental`** — active development (Summary tab, Health Connect, onboarding, form retake, UI fixes, etc.)
 
 ## Other platforms in this repo
@@ -108,7 +107,7 @@ For Health Connect on emulator/device, install the [Health Connect app](https://
 |-----------|----------|
 | `FitProjectDroid/` | Android (this README) |
 | `FitProjectWin/` | Windows (WinUI 3 / .NET 8) |
-| `FitProjectApple/` | iOS / macOS (SwiftUI) |
+| `FitProjectApple/` | iOS / macOS (SwiftUI) | UNTESTED |
 
 Android, Windows, and Apple share the FitPros.io backend but are maintained as **separate clients** with platform-specific UI.
 
