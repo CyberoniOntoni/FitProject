@@ -13,7 +13,7 @@ Built with **Kotlin**, **Jetpack Compose**, and **Material 3**, with a dark UI i
 ### Requirements
 
 - Android 8.0+ (API 26)
-- A FitPros.io client account (Firebase Auth)
+- A FitPros.io client and/or PT account (Firebase Auth)
 - **Health Connect** (optional, for steps and distance on the Summary tab)
 
 ### Main tabs
